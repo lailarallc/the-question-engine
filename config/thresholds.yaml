@@ -54,7 +54,7 @@ q12:
 q13:
   # Am I about to get hit with OTIF penalties I can't see?
   asn_late_rate_threshold: 0.05         # > 5% late ASN rate = OTIF exposure; fires the verdict
-  penalty_per_asn_late: 200             # $200 per late ASN (Walmart standard fine)
+  penalty_per_asn_late: 25              # $25 per late-ASN PO (Walmart SQEP ASN defect fee; excludes the larger 3%-of-COGS OTIF exposure)
   otif_floor: 0.98                      # Walmart large-supplier OTIF target (98%)
 
 q14:
