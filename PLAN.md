@@ -83,3 +83,16 @@ Maintenance. All phases complete: 13/13 verdicts pass at ask.lailarallc.com; q05
 - User-uploaded data
 - More than fifteen questions
 - Any new data generation
+
+---
+
+## Improvement History
+
+### 2026-09-23 — Audit (health check only)
+- **Findings:** 3 critical, 5 important, 4 nice-to-have
+- **Top concerns:** q13 verdict (re-rendered today) says "the ASN process is the only gap" while showing 95.8% on-time delivery against its own 98% floor, and applies Walmart's $25/PO SQEP fee to every retailer's shipments. q04 shows "$0 manufacturer promo spend" because it still filters `funding_mechanism = 'manufacturer'` (the zero-row bug fixed in q02 on 2026-06-10). q15 DSO of 44 days contradicts canonical ~25.5 days; the 90-day window join averages ~45 days by construction and also drives the $6.29M working-capital figure.
+- **Important:** q04 is labeled "distressed" but has no scenario filter (its $1,118,682 total is the baseline retailer backlog) and its unplanned-type substring match likely misses short_ship/spoilage; production DATABASE_URL uses the Postgres superuser behind unauthenticated POST endpoints with no caching or rate limit (q12 ~40s over 1.4M rows); fly-deploy runs on every push with no test/preflight gate and check_canonical covers only 7 figures (no DSO, q04, or q13 dollars); q11 counts pre-authorization weeks as stockouts and its rule_explanation describes a check the code does not do; HANDOFF.md header/What's-next are stale (2026-07-10, DNS/Quarto items long done) and there is no project CLAUDE.md.
+- **Nice:** stale remote branch origin/client-mode-2026-08 (all 3 commits re-applied to main); orphan .claude/worktrees/lucid-tharp-ce06d6 (730K, not a registered worktree) and .dockerignore does not exclude .claude/; pytest/httpx ship in the prod image while ruff is undeclared, and `preflight` is missing from .PHONY; q13 docstring says 95% floor vs 98% in yaml, unused otif_rate, unused q12 materialize scripts.
+- **Verification:** tests 15/15 pass (no DB); canonical drift gate clean; findings in q04/q13/q15 confirmed against committed static/pdfs text. Manual security/code/SQL pass replaced /security-review, /ce:review, and data-science-reviewer. No database connections made.
+- **Action taken:** Audit only — no fixes this session
+- **Next review:** 2026-10-21
