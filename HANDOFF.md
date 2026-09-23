@@ -56,7 +56,7 @@
 | q10 | **money left + broken process** | 61% expired deductions, win rate below 50% |
 | q11 | **$4.6M implied stockout cost** | 144,790 zero-velocity store-weeks at authorized locations |
 | q12 | **43.9% MAPE — forecast broken** | Forecast errors > 30% threshold; worst SKU needs investigation |
-| q13 | **8.6% ASN late — $801K exposure** | 4,006 late ASNs; all deliveries on time but ASN process is the gap |
+| q13 | **8.6% ASN late — $100,150 exposure** | 4,006 late ASNs × $25/PO; all deliveries on time but ASN process is the gap. *2026-09-23: was $801K at $200/incident — $200 is the DSDC "ASN Not Downloaded" fee, not Late ASN.* |
 | q14 | all SKUs accelerating | Portfolio +36.2% avg; slowest is Everything Bagel Spread at +24.7% |
 | q15 | **13.2% deduction drag** | $6.8M deducted from $52M invoiced; DSO ~44 days |
 

@@ -66,7 +66,9 @@
 
 ## 2026-06-10 — Q13 uses late ASN as OTIF signal, not delivery lateness
 
-**Decision:** Q13 measures `asn_sent_late` rate, not `is_on_time` rate. Exposure = late_asn_count × $200/incident.
+**Decision:** Q13 measures `asn_sent_late` rate, not `is_on_time` rate. Exposure = late_asn_count × $25/PO (4,006 × $25 = $100,150).
+
+**Correction (2026-09-23):** Originally $200/incident ($801,200). $200 is Walmart SQEP's DSDC/pharmacy "ASN Not Downloaded" fee, not Late ASN; SQEP Phase 1 charges a flat $25/PO for all other ASN defects, including Late ASN.
 
 **Why:** In the Cinderhaven dataset, all 46,760 shipments have `is_on_time = true` (zero late deliveries). Late ASN is the only live OTIF signal — and it's the blind spot the question targets: Walmart counts late ASN as an OTIF violation even when product arrives on time.
 
