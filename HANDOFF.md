@@ -1,8 +1,84 @@
 # HANDOFF — The Question Engine
 
-**Last updated:** 2026-07-10
-**Session:** Session 7 — restored ask.lailarallc.com outage + reconstructed audit-fixes
-**Phase:** Phase 5 maintenance — live at ask.lailarallc.com, verdicts + audit-fixes deployed
+_Last updated: 2026-09-24_
+**Session:** Session 8 — q13/q04/q15 wrong-number fixes (edited + dry-run verified, NOT rendered/committed)
+**Phase:** Phase 5 maintenance — live at ask.lailarallc.com
+
+---
+
+## Goal of current task
+
+Fix three verdicts that show wrong numbers on the live site and in the committed one-pager PDFs (found by the 2026-09-23 audit): **q13** (OTIF/ASN fee exposure), **q04** (manufacturer promo spend shows $0), **q15** (DSO and working capital). Each gets its code fix + a re-rendered PDF, committed one commit per question, and the user reviews all 3 PDFs before anything is pushed.
+
+## Where we are
+
+All three code fixes are **edited in the working tree, uncommitted** (`engine/questions/q04_trade_spend.py`, `q13_otif_exposure.py`, `q15_cash_conversion.py`). They were dry-run against the live DB (real `run()` code, no PDFs written) and produce the approved numbers below. The user approved the diagnosis and the number choices, and was shown the q13 number; **the only thing outstanding is the user's "render" go-ahead.** No PDFs re-rendered yet, nothing committed, nothing pushed. The DB tunnel is closed.
+
+Approved new numbers (dry run, 2026-09-23):
+
+| | old (live now) | new | source / check |
+|---|---|---|---|
+| q13 Walmart ASN fees | $100,150 (3 yrs × all 6 retailers × $25) | **$8,175** = 327 Walmart late ASNs in **2025** × $25 | per-retailer count; window = same year q15 uses |
+| q04 manufacturer promo spend | $0 | **$328,891** | = canonical `trade.promotional_spend.trailing_36m` 328,890.88 |
+| q15 DSO | 44 days | **26 days** (25.58) | = canonical `workingcapital.dso_days.trailing_36m` |
+| q15 working capital in transit | $6,292,586 | **$1,218,030** | = 2025 gross 17,380,018.08 (canonical `revenue.gross_payments_retailer.trailing_12m`) ÷ 365 × 25.58 |
+
+Verdict text changes: q13 drops "at current run rate" and "the ASN process is the only gap" (on-time is 95.7% overall / 95.9% Walmart, below the 98% floor — now stated, OTIF fine not dollarized); q13 says other retailers' ASN fees are unknown and excluded; every q13 key number/chart is labelled 2025. q15 verdict flips from "two compounding reasons" to "deduction drag is the culprit" (12.7% > 12%; DSO 26 < 45 warning). q04 stays "within range" (14% unplanned); only the promo number changes.
+
+## What was tried this session
+
+- Read-only diagnosis of q13/q04/q15 (code + `reference/canonical_values.json` + read-only SELECTs over a tunnel) — found the causes below; user approved.
+- q13 window: offered 3-year total ($22,425) or ÷3 annualized (~$7,434) — user rejected both; chose **actual count of Walmart late ASNs in the same 12-month window as q15** (calendar 2025) → $8,175.
+- q15 annual gross: offered last full calendar year ($1,218,030, matches canonical) vs trailing-365 to latest payment ($1,375,276) — user chose **last full calendar year**.
+- Dry-ran all three edited questions' `run()` against the DB → numbers above. Confirmed shipments:POs is 1:1 (46,760 each), so "per late-ASN PO" = per late-ASN shipment.
+
+## What worked
+
+- **Causes (verified):**
+  - q13: priced late ASNs from all 6 retailers at Walmart's SQEP $25/PO fee; counted 3 years but said "current run rate"; hardcoded "ASN is the only gap" despite 1,948 late deliveries.
+  - q04: `WHERE funding_mechanism = 'manufacturer'` matches zero rows (values are off_invoice/MCB/scan_based/billback) — identical to the q02 bug in FAILURES.md 2026-06-10. Fix = drop the filter.
+  - q15 DSO: matched each payment to every delivery in the prior 90 days → ~45 days by construction. Replaced with the canonical method from `active datasources/cinderhaven-data-platform/sql/canonical_gather.sql` (order-value-weighted `received_date − po_date`, remittance received 25–55 days after start of PO month). Gives exactly 25.58 on the marts.
+  - q15 working capital: divided ~3 years of gross ($52.1M) by 365 → ~3× too big. Now uses last full calendar year.
+- "Last full calendar year" is computed in SQL as `EXTRACT(YEAR FROM MAX(received_date) + 1) - 1` on `fct_retailer_payments` (→ 2025); q13 uses the same CTE so the two questions share a window.
+- Tests: `pytest tests/` 15/15 pass (run with no tunnel open and DB env vars cleared); `scripts/check_canonical_drift.py` clean; files compile.
+
+## What didn't work and why
+
+- The 2026-09-23 q13 "fix" (penalty 200 → 25, commits 43fb9a2 / 25846f9 / e03b592, already pushed + live at $100,150) was **incomplete**: the fee amount was right but it was applied to all retailers and over 3 years. The fixes above supersede it.
+- A Wave-2 audit subagent's pytest run in another repo (edi-reconciliation-tool) reached the **production** DB through a leftover `fly proxy 5432` — read-only, no damage. Root cause: `localhost:5432` was a prod tunnel + `POSTGRES_PASSWORD` is set machine-wide. Rule adopted: tunnel on **15432** only, `DATABASE_URL` set only for the one render/dry-run process, no pytest while a tunnel is open. (Memory: `env_localhost_5432_prod_risk.md`.)
+- This repo's `.env` DATABASE_URL points at `localhost:5432` and python-dotenv loads it — so clearing env vars is NOT enough here; set `DATABASE_URL` explicitly (port 15432) in the render process, which dotenv won't override.
+- `scripts/check_canonical.py` needs `PYTHONPATH=.` and a live DB; not run.
+
+## Next concrete action
+
+When the user says "render": in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. After push: update `HANDOFF.md` q13 table row and `DECISIONS.md:69` (both still say $100,150 from the 09-23 note) to $8,175 / 2025 Walmart-only.
+
+## Open questions / blockers
+
+- Waiting on the user's "render" OK. Push only after the user has seen all 3 PDFs.
+- Not in scope, flagged by the 2026-09-23 audit (see PLAN.md Improvement History): q04 labelled "distressed" but has no scenario filter and its deduction window is wider than its promo window; q11 counts pre-authorization weeks as stockouts; live app connects as the Postgres superuser with no rate limit on public verdict endpoints (q12 ~40s); Fly deploy not gated on tests; no project CLAUDE.md; stale `.claude/worktrees/lucid-tharp-ce06d6` folder; stale remote branch `origin/client-mode-2026-08`.
+
+## Fleet state from the 2026-09-23 session (other repos, for context)
+
+- **Gitleaks on commit:** all 41 `published/` repos now block leaked keys (tracked `scripts/git-hooks/pre-commit` → pre-commit framework; 2 repos use `pre-commit install`). ~39 repos have that commit **unpushed** — push with each repo's next real change. `datascope` is diverged (local hook commit vs 2 origin commits from 2026-09-02) and needs a merge; its audit entry sits uncommitted in `.dev/PLAN.md`.
+- **History scans** (gitleaks, all branches) over published/, reference/, active/, active datasources/: no live secrets. A retired 8-char local-dev password (fingerprint b83c) is in public history; tested — dead on every cinderhaven-db role, nothing to rotate.
+- **Rollup:** `C:\Users\mssha\projects\IMPROVE-ROLLUP-2026-09-23.md` — Wave 1 (4 wrong "unmerged" top concerns corrected) + Wave 2 (19 repos, 19 critical findings). Wave 1 "committed?" column may still be stale.
+- **User's Later list (in order):** (1) integration-test guard that refuses any non-local DB; (2) datascope merge + commit audit entry + publish v2.4.0 to PyPI; (3) sweep stale `client-mode.yml` MsShawnP/per-repo-secret instructions across 7+ repos; (4) fix Wave 1 "committed?" column, then Wave 3 (24 repos); (5) check the Costco "$50–$200 per ASN" fee (4 repos, one secondary source) against a primary source.
+
+## Key files to load
+
+- `engine/questions/q13_otif_exposure.py`, `q04_trade_spend.py`, `q15_cash_conversion.py` — the uncommitted fixes (`git diff` to review)
+- `config/thresholds.yaml` — `q13.penalty_per_asn_late: 25`, `otif_floor: 0.98`; `q15.dso_warning: 45`
+- `reference/canonical_values.json` — source of truth for the q04 and q15 numbers
+- `scripts/render_pdfs.py` — renders `static/pdfs/{qid}.pdf` (needs DATABASE_URL + quarto; R 4.6.0 is found by quarto without PATH)
+- `C:\Users\mssha\projects\active datasources\cinderhaven-data-platform\sql\canonical_gather.sql` — canonical DSO definition (line ~199)
+- `FAILURES.md` 2026-06-10 — the q02 funding_mechanism bug q04 repeated
+
+---
+
+## 2026-09-23 — Session 8 (earlier part): q13 fee + guards landed
+
+- Pushed to origin/main (deploy + canonical-drift green): gitleaks pre-commit hook, engagement deploy guard (scaffold + fly-deploy.yml guard step), q13 `penalty_per_asn_late` 200 → 25, re-rendered q13.pdf, HANDOFF/DECISIONS notes. Live q13 then showed $100,150 — superseded by the Walmart-only 2025 fix above.
 
 ---
 
@@ -56,7 +132,7 @@
 | q10 | **money left + broken process** | 61% expired deductions, win rate below 50% |
 | q11 | **$4.6M implied stockout cost** | 144,790 zero-velocity store-weeks at authorized locations |
 | q12 | **43.9% MAPE — forecast broken** | Forecast errors > 30% threshold; worst SKU needs investigation |
-| q13 | **8.6% ASN late — $100,150 exposure** | 4,006 late ASNs × $25/PO; all deliveries on time but ASN process is the gap. *2026-09-23: was $801K at $200/incident — $200 is the DSDC "ASN Not Downloaded" fee, not Late ASN.* |
+| q13 | **8.6% ASN late — $8,175 exposure** | 327 Walmart late ASNs in 2025 × $25/PO (Walmart only; other retailers' fees unknown). *2026-09-23: was $801K at $200/incident — $200 is the DSDC "ASN Not Downloaded" fee, not Late ASN. 2026-09-24: was $100,150 (4,006 late ASNs, all 6 retailers, 3 years).* |
 | q14 | all SKUs accelerating | Portfolio +36.2% avg; slowest is Everything Bagel Spread at +24.7% |
 | q15 | **13.2% deduction drag** | $6.8M deducted from $52M invoiced; DSO ~44 days |
 
