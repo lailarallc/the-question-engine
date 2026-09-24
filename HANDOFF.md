@@ -1,7 +1,7 @@
 # HANDOFF — The Question Engine
 
 _Last updated: 2026-09-24_
-**Session:** Session 8 — q13/q04/q15 wrong-number fixes (edited + dry-run verified, NOT rendered/committed)
+**Session:** Session 8 — q13/q04/q15 wrong-number fixes (rendered + committed, awaiting push)
 **Phase:** Phase 5 maintenance — live at ask.lailarallc.com
 
 ---
@@ -12,7 +12,7 @@ Fix three verdicts that show wrong numbers on the live site and in the committed
 
 ## Where we are
 
-All three code fixes are **edited in the working tree, uncommitted** (`engine/questions/q04_trade_spend.py`, `q13_otif_exposure.py`, `q15_cash_conversion.py`). They were dry-run against the live DB (real `run()` code, no PDFs written) and produce the approved numbers below. The user approved the diagnosis and the number choices, and was shown the q13 number; **the only thing outstanding is the user's "render" go-ahead.** No PDFs re-rendered yet, nothing committed, nothing pushed. The DB tunnel is closed.
+**Render done, all 3 committed** (2026-09-24): `d2e8c62` q13, `74a28e4` q04, `b86f39e` q15 — each = the question's `.py` + its re-rendered `static/pdfs/qNN.pdf`. PDF text verified (pypdf) to show the numbers below and none of the old ones. Rendered over a `fly proxy 15432` tunnel, since closed (nothing listening on :15432). The user has the 3 PDFs. **Outstanding: push to origin/main, then confirm the deploy and the live PDFs at ask.lailarallc.com/api/pdf/q13, q04, q15.**
 
 Approved new numbers (dry run, 2026-09-23):
 
@@ -51,11 +51,14 @@ Verdict text changes: q13 drops "at current run rate" and "the ASN process is th
 
 ## Next concrete action
 
-When the user says "render": in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
+Push to origin/main (after the user's go-ahead), watch the Fly deploy + canonical-drift workflows, then check the live PDFs at ask.lailarallc.com/api/pdf/q13, q04, q15 show $8,175, $328,891 and 26 days.
+
+Render procedure used (DONE 2026-09-24, kept for the next re-render): in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
 
 ## Open questions / blockers
 
-- Waiting on the user's "render" OK. Push only after the user has seen all 3 PDFs.
+- Rendered + committed; waiting on push. The user has seen all 3 PDFs.
+- q13.pdf is 2 pages (footer spills to page 2). The live version before this fix had the same spill, so it doesn't block this push; on the Later list.
 - Not in scope, flagged by the 2026-09-23 audit (see PLAN.md Improvement History): q04 labelled "distressed" but has no scenario filter and its deduction window is wider than its promo window; q11 counts pre-authorization weeks as stockouts; live app connects as the Postgres superuser with no rate limit on public verdict endpoints (q12 ~40s); Fly deploy not gated on tests; no project CLAUDE.md; stale `.claude/worktrees/lucid-tharp-ce06d6` folder; stale remote branch `origin/client-mode-2026-08`.
 
 ## Fleet state from the 2026-09-23 session (other repos, for context)
@@ -63,11 +66,11 @@ When the user says "render": in `published/the-question-engine`, (1) `fly proxy 
 - **Gitleaks on commit:** all 41 `published/` repos now block leaked keys (tracked `scripts/git-hooks/pre-commit` → pre-commit framework; 2 repos use `pre-commit install`). ~39 repos have that commit **unpushed** — push with each repo's next real change. `datascope` is diverged (local hook commit vs 2 origin commits from 2026-09-02) and needs a merge; its audit entry sits uncommitted in `.dev/PLAN.md`.
 - **History scans** (gitleaks, all branches) over published/, reference/, active/, active datasources/: no live secrets. A retired 8-char local-dev password (fingerprint b83c) is in public history; tested — dead on every cinderhaven-db role, nothing to rotate.
 - **Rollup:** `C:\Users\mssha\projects\IMPROVE-ROLLUP-2026-09-23.md` — Wave 1 (4 wrong "unmerged" top concerns corrected) + Wave 2 (19 repos, 19 critical findings). Wave 1 "committed?" column may still be stale.
-- **User's Later list (in order):** (1) integration-test guard that refuses any non-local DB; (2) datascope merge + commit audit entry + publish v2.4.0 to PyPI; (3) sweep stale `client-mode.yml` MsShawnP/per-repo-secret instructions across 7+ repos; (4) fix Wave 1 "committed?" column, then Wave 3 (24 repos); (5) check the Costco "$50–$200 per ASN" fee (4 repos, one secondary source) against a primary source.
+- **User's Later list (in order, updated 2026-09-24):** (1) confirm Walmart's 98% OTIF on-time floor (quoted on the q13 page) against a primary source; (2) fix the q13 footer spill so it's one page again; (3) datascope merge + commit audit entry + publish v2.4.0 to PyPI; (4) integration-test guard that refuses any non-local DB; (5) sweep stale `client-mode.yml` MsShawnP/per-repo-secret instructions across 7+ repos, fix Wave 1 "committed?" column, then Wave 3 (24 repos). Also still open: check the Costco "$50–$200 per ASN" fee (4 repos, one secondary source) against a primary source.
 
 ## Key files to load
 
-- `engine/questions/q13_otif_exposure.py`, `q04_trade_spend.py`, `q15_cash_conversion.py` — the uncommitted fixes (`git diff` to review)
+- `engine/questions/q13_otif_exposure.py`, `q04_trade_spend.py`, `q15_cash_conversion.py` — the fixes (committed d2e8c62 / 74a28e4 / b86f39e)
 - `config/thresholds.yaml` — `q13.penalty_per_asn_late: 25`, `otif_floor: 0.98`; `q15.dso_warning: 45`
 - `reference/canonical_values.json` — source of truth for the q04 and q15 numbers
 - `scripts/render_pdfs.py` — renders `static/pdfs/{qid}.pdf` (needs DATABASE_URL + quarto; R 4.6.0 is found by quarto without PATH)
@@ -82,9 +85,9 @@ When the user says "render": in `published/the-question-engine`, (1) `fly proxy 
 
 **Did:** Gitleaks pre-commit on all 41 published/ repos (fake-key tested); engagement deploy guard cherry-picked to main here + 2 repos; q13 $200→$25 pushed (incomplete — all retailers, 3 yrs); fleet secret-history scans clean (b83c password dead); Wave 2 /improve audit (19 repos) found q13/q04/q15 wrong live numbers; diagnosed + edited all 3 with canonical checks, dry-run verified. Closed a prod tunnel a test had read through.
 
-**State:** q13/q04/q15 code fixes UNCOMMITTED in the working tree (tests 15/15, drift gate clean); PDFs not re-rendered; live site still shows old numbers. Tunnels closed.
+**State:** q13/q04/q15 rendered + committed (d2e8c62 / 74a28e4 / b86f39e; tests 15/15, drift gate clean); not pushed, so the live site still shows old numbers. Tunnels closed.
 
-**Next:** Say "render" → follow "Next concrete action" above. Tracked sibling (checked, not fixed): multi-year totals shown with no window label — q04 "Total deductions $1,118,682", q15 "$6.66M of $52.1M invoiced", q08 "realized" compliance total — same unlabeled-window defect q13 had; decide per-year vs labelled window after the render.
+**Next:** Push → follow "Next concrete action" above. Tracked sibling (checked, not fixed): multi-year totals shown with no window label — q04 "Total deductions $1,118,682", q15 "$6.66M of $52.1M invoiced", q08 "realized" compliance total — same unlabeled-window defect q13 had; decide per-year vs labelled window after the render.
 
 ---
 
