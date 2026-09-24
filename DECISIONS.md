@@ -102,6 +102,8 @@
 
 **Correction (2026-09-24):** The 09-23 figure ($100,150 = 4,006 × $25) applied Walmart's fee to late ASNs from all 6 retailers over 3 years. Now Walmart only, 2025 only (same window as q15): 327 × $25 = $8,175. Other retailers' ASN fees are unknown and excluded. The "zero late deliveries" premise below no longer holds: on-time is 95.7% overall / 95.9% Walmart (1,948 late deliveries), below the 98% floor; the verdict states this but does not dollarize the OTIF fine.
 
+**Correction (2026-09-24, later):** The 98% floor was Walmart's 2021 combined OTIF rule. Since 2024-02-01 the targets are 90% on-time for prepaid (measured at arrival by MABD), 98% ready for collect pickup, 95% in-full per merchandise category (SPS Commerce supplier wiki; Walmart's own spec is behind Retail Link). The data has no prepaid/collect field, so prepaid is assumed. q13 now scores Walmart the way Walmart does, replicating otif-blind-spot's scoring (matches canonical cy2025 exactly): on-time 97.6% vs 90% (meets), **in-full 86.2% vs 95% (misses by ~9 pts)** — in-full is the real gap, not on-time. The 95.7% on the page measures ship date vs requested date at the brand's dock, so it is labelled "shipped by requested date" and never set against Walmart's target. Do not quote 98% as Walmart's overall OTIF bar; do not compare a ship-date on-time rate with Walmart's arrival-based target.
+
 **Why:** In the Cinderhaven dataset, all 46,760 shipments have `is_on_time = true` (zero late deliveries). Late ASN is the only live OTIF signal — and it's the blind spot the question targets: Walmart counts late ASN as an OTIF violation even when product arrives on time.
 
 ---
