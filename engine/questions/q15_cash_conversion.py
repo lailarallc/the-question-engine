@@ -5,8 +5,8 @@ Reads fct_retailer_payments (remittance data) to quantify the two forces
 that create a cash lag even when revenue is growing:
   1. Deduction drag — the silent haircut: 12–14% of every invoiced dollar
      disappears as deductions before cash arrives.
-  2. DSO (Days Sales Outstanding) — the timing gap: cash from a delivery
-     arrives ~44 days later.
+  2. DSO (Days Sales Outstanding) — the timing gap: cash arrives ~26 days
+     after the PO (canonical workingcapital.dso_days).
 
 Rule: fires when avg deduction rate > DEDUCTION_DRAG_WARNING OR
 average DSO > DSO_WARNING. Both conditions together = "cash trap."
@@ -25,23 +25,44 @@ _CFG = yaml.safe_load(
     (Path(__file__).parent.parent.parent / "config" / "thresholds.yaml").read_text()
 )["q15"]
 
+# annual_gross / annual_year: the last full calendar year of remittances, so
+# working capital = one year of gross / 365 × DSO (matches canonical
+# revenue.gross_payments_retailer.trailing_12m). q13 uses the same year.
 _SQL_SUMMARY = """
+WITH yr AS (
+    SELECT (EXTRACT(YEAR FROM MAX(received_date) + 1) - 1)::int AS y
+    FROM public_marts.fct_retailer_payments
+)
 SELECT
     SUM(gross_amount)                                                           AS total_gross,
     SUM(net_amount)                                                             AS total_net,
     SUM(total_deductions)                                                       AS total_deductions,
     ROUND(AVG(total_deductions / NULLIF(gross_amount, 0))::numeric * 100, 2)   AS avg_deduction_rate,
     COUNT(*)                                                                    AS payment_count,
-    ROUND(AVG(gross_amount)::numeric, 0)                                        AS avg_remittance
+    ROUND(AVG(gross_amount)::numeric, 0)                                        AS avg_remittance,
+    SUM(gross_amount) FILTER (WHERE EXTRACT(YEAR FROM received_date) = (SELECT y FROM yr))
+                                                                                AS annual_gross,
+    (SELECT y FROM yr)                                                          AS annual_year
 FROM public_marts.fct_retailer_payments
+"""
+
+# DSO uses the canonical method (canonical_gather.sql, workingcapital.dso_days):
+# order-value-weighted (received_date − po_date), each order matched to
+# remittances received 25–55 days after the start of its PO month.
+_SQL_DSO = """
+SELECT
+    ROUND(SUM(o.total_value * (r.received_date - o.po_date))
+          / NULLIF(SUM(o.total_value), 0), 2) AS dso_days
+FROM public_marts.fct_retailer_orders o
+JOIN public_marts.fct_retailer_payments r
+    ON r.retailer_id = o.retailer_id
+    AND r.received_date BETWEEN date_trunc('month', o.po_date)::date + 25
+                            AND date_trunc('month', o.po_date)::date + 55
 """
 
 _SQL_BY_RETAILER = """
 -- Payments and DSO are computed in separate CTEs to avoid fanout.
--- fct_retailer_payments has no FK to fct_retailer_orders; DSO is approximated
--- via retailer_id + delivery_date within 90 days before payment received.
--- One payment can match multiple orders, which may skew per-retailer DSO.
--- No better join key exists in the schema.
+-- DSO per retailer uses the same canonical method as _SQL_DSO.
 WITH payment_agg AS (
     SELECT
         p.retailer_id,
@@ -54,13 +75,15 @@ WITH payment_agg AS (
 ),
 dso_agg AS (
     SELECT
-        p.retailer_id,
-        ROUND(AVG(p.received_date - fo.delivery_date)::numeric, 1) AS dso_days
-    FROM public_marts.fct_retailer_payments p
-    JOIN public_marts.fct_retailer_orders fo
-        ON fo.retailer_id = p.retailer_id
-        AND fo.delivery_date BETWEEN p.received_date - 90 AND p.received_date
-    GROUP BY p.retailer_id
+        o.retailer_id,
+        ROUND(SUM(o.total_value * (r.received_date - o.po_date))
+              / NULLIF(SUM(o.total_value), 0), 1) AS dso_days
+    FROM public_marts.fct_retailer_orders o
+    JOIN public_marts.fct_retailer_payments r
+        ON r.retailer_id = o.retailer_id
+        AND r.received_date BETWEEN date_trunc('month', o.po_date)::date + 25
+                                AND date_trunc('month', o.po_date)::date + 55
+    GROUP BY o.retailer_id
 )
 SELECT
     dr.retailer_name,
@@ -89,6 +112,7 @@ class CashConversionQuestion(BaseQuestion):
 
     def run(self) -> VerdictResponse:
         summary_rows = query(_SQL_SUMMARY)
+        dso_rows = query(_SQL_DSO)
         by_retailer = query(_SQL_BY_RETAILER)
         if not summary_rows or not by_retailer:
             raise NoDataError("q15: no remittance data returned")
@@ -100,21 +124,18 @@ class CashConversionQuestion(BaseQuestion):
         avg_deduction_rate = float(summary["avg_deduction_rate"] or 0)
         payment_count = int(summary["payment_count"] or 0)
         avg_remittance = float(summary["avg_remittance"] or 0)
+        annual_gross = float(summary["annual_gross"] or 0)
+        annual_year = int(summary["annual_year"])
         cfg = _CFG
 
-        gross_total_for_dso = sum(float(r["total_gross"]) for r in by_retailer)
-        avg_dso = (
-            sum(float(r["dso_days"]) * float(r["total_gross"]) for r in by_retailer)
-            / gross_total_for_dso
-            if gross_total_for_dso > 0
-            else 0
-        )
+        avg_dso = float(dso_rows[0]["dso_days"] or 0) if dso_rows else 0
 
         worst_deduction_retailer = by_retailer[0] if by_retailer else None
         deduction_drag_fires = avg_deduction_rate / 100 > cfg["deduction_drag_warning"]
         dso_fires = avg_dso > cfg["dso_warning"]
 
-        working_capital_tied = (total_gross / 365) * avg_dso if total_gross > 0 else 0
+        # One year of gross (last full calendar year), not the whole multi-year history.
+        working_capital_tied = (annual_gross / 365) * avg_dso if annual_gross > 0 else 0
 
         if deduction_drag_fires and dso_fires:
             verdict = (
@@ -192,13 +213,15 @@ class CashConversionQuestion(BaseQuestion):
                 KeyNumber(
                     label="Working capital in transit",
                     value=f"${working_capital_tied:,.0f}",
-                    context="daily revenue × avg DSO",
+                    context=f"{annual_year} gross ÷ 365 × avg DSO",
                 ),
             ],
             chart=chart_data,
             rule_explanation=(
                 f"Deduction drag = avg(total_deductions / gross_amount) from fct_retailer_payments. "
-                f"DSO = avg(received_date − delivery_date) matched by retailer within 90-day window. "
+                f"DSO = order-value-weighted days from PO date to remittance, each order matched to "
+                f"remittances received 25–55 days after the start of its PO month (canonical method). "
+                f"Working capital = {annual_year} gross remittances ÷ 365 × DSO. "
                 f"Fires when deduction rate > {cfg['deduction_drag_warning']:.0%} OR DSO > {cfg['dso_warning']} days. "
                 f"Thresholds from Contract-to-Cash Lifecycle."
             ),
