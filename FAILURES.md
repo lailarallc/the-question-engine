@@ -133,3 +133,51 @@
 **Fix:** Removed the WHERE clause. All four mechanism types represent manufacturer promo investment.
 
 **Lesson:** Always SELECT DISTINCT the categorical column before filtering on it in any new query.
+
+---
+
+## 2026-09-23 — Q13 fee fix shipped with the wrong scope and window
+
+**What was tried:** Changed `penalty_per_asn_late` from 200 to 25 (Walmart SQEP $25/PO), re-rendered q13.pdf, pushed. Live q13 showed $100,150.
+
+**Why it failed:** Only the fee *amount* was verified. The code priced late ASNs from all 6 retailers at a Walmart-only fee, summed 3 years of shipments, and called the total "current run rate". The verdict also hardcoded "the ASN process is the only gap" while the same query showed 95.8% on-time (1,948 late deliveries) against a 98% floor.
+
+**Fix:** Walmart late ASNs only, counted in the last full calendar year (2025, same window as q15) → $8,175; other retailers' fees stated as unknown and excluded; window named on every q13 number; on-time shortfall stated.
+
+**Lesson:** When fixing a rate, also verify who it applies to and over what window. A correct rate × the wrong base is still a wrong number.
+
+---
+
+## 2026-09-23 — Q04 repeated the Q02 funding_mechanism bug
+
+**What was tried:** `_SQL_PROMO` filtered `funding_mechanism = 'manufacturer'`. Live q04 and its PDF showed "Manufacturer promo spend: $0".
+
+**Why it failed:** Same as the 2026-06-10 Q02 entry above — no row has that value (actual: off_invoice, MCB, scan_based, billback). The Q02 fix never checked sibling queries.
+
+**Fix:** Dropped the filter. $328,891 = canonical `trade.promotional_spend.trailing_36m`. Grep confirms no other `funding_mechanism` filter remains.
+
+**Lesson:** When a fix is for a pattern (a filter on a categorical value), grep every query for the same pattern before closing it.
+
+---
+
+## 2026-09-23 — Q15 DSO and working capital were structurally inflated
+
+**What was tried:** DSO = avg(received_date − delivery_date) over every delivery in the 90 days before each payment; working capital = total gross ÷ 365 × DSO.
+
+**Why it failed:** Matching a payment to every delivery in a 90-day window averages ~45 days regardless of real payment terms (44 shown vs canonical 25.58). Total gross spans ~3 years ($52.1M), so ÷ 365 made working capital ~3× too big ($6.29M).
+
+**Fix:** Canonical DSO method from `cinderhaven-data-platform/sql/canonical_gather.sql` (order-value-weighted received − PO date, remittances 25–55 days after start of PO month) → 25.58. Working capital uses one year of gross (last full calendar year) → $1,218,030.
+
+**Lesson:** If canonical_values.json defines a metric, compute it the canonical way. Anything divided by 365 must be one year of data.
+
+---
+
+## 2026-09-23 — A test run reached the production database through a local tunnel
+
+**What was tried:** `fly proxy 5432 -a cinderhaven-db` left open after the q13 render; audit subagents later ran repo test suites.
+
+**Why it failed:** `localhost:5432` was a tunnel to production, `POSTGRES_PASSWORD` is set machine-wide (it switches on integration tests in other repos), and this repo's `.env` DATABASE_URL points at `localhost:5432` (python-dotenv loads it). One test suite in another repo ran read-only queries against production; its table-truncating tests crashed at import before connecting.
+
+**Fix:** Tunnels go on port 15432 only; DATABASE_URL is set (port 15432) only inside the one render/diagnosis process; no pytest while a tunnel is open; close the tunnel immediately after.
+
+**Lesson:** A local port is not proof of a local database. Check `netstat -ano | findstr :5432` before running anything that reads DATABASE_URL.

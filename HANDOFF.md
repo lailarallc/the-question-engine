@@ -76,6 +76,18 @@ When the user says "render": in `published/the-question-engine`, (1) `fly proxy 
 
 ---
 
+## 2026-09-24 — wrap
+
+**Started from:** 2026-07-10 entry (outage restore); session opened on fleet gitleaks-hook gaps.
+
+**Did:** Gitleaks pre-commit on all 41 published/ repos (fake-key tested); engagement deploy guard cherry-picked to main here + 2 repos; q13 $200→$25 pushed (incomplete — all retailers, 3 yrs); fleet secret-history scans clean (b83c password dead); Wave 2 /improve audit (19 repos) found q13/q04/q15 wrong live numbers; diagnosed + edited all 3 with canonical checks, dry-run verified. Closed a prod tunnel a test had read through.
+
+**State:** q13/q04/q15 code fixes UNCOMMITTED in the working tree (tests 15/15, drift gate clean); PDFs not re-rendered; live site still shows old numbers. Tunnels closed.
+
+**Next:** Say "render" → follow "Next concrete action" above. Tracked sibling (checked, not fixed): multi-year totals shown with no window label — q04 "Total deductions $1,118,682", q15 "$6.66M of $52.1M invoiced", q08 "realized" compliance total — same unlabeled-window defect q13 had; decide per-year vs labelled window after the render.
+
+---
+
 ## 2026-09-23 — Session 8 (earlier part): q13 fee + guards landed
 
 - Pushed to origin/main (deploy + canonical-drift green): gitleaks pre-commit hook, engagement deploy guard (scaffold + fly-deploy.yml guard step), q13 `penalty_per_asn_late` 200 → 25, re-rendered q13.pdf, HANDOFF/DECISIONS notes. Live q13 then showed $100,150 — superseded by the Walmart-only 2025 fix above.

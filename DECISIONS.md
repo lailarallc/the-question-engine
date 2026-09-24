@@ -2,6 +2,36 @@
 
 ---
 
+## 2026-09-24 — Dollar figures are per-year for a named calendar year; retailer-specific fees stay with their retailer
+
+**Decision:** A verdict's dollar figure is an actual count for one named window: the last full calendar year of data (`EXTRACT(YEAR FROM MAX(received_date) + 1) - 1` on `fct_retailer_payments`), shared by q13 and q15, and the page names that year. A fee or threshold that belongs to one retailer (Walmart SQEP $25/PO) is applied only to that retailer; retailers whose fee is unknown are excluded and the page says so.
+
+**Why:** The rest of the portfolio states figures per year (e.g. short-ship's $298K/yr). A 3-year total next to annual figures reads as a smaller problem; dividing it by 3 is an estimate that won't survive a CFO's questions. Pricing all 6 retailers at Walmart's fee overstated q13 ~12× ($100,150 vs $8,175).
+
+**Do not:** show multi-year totals as "current run rate"; annualize by dividing a multi-year total by N; apply one retailer's fee or floor to other retailers.
+
+---
+
+## 2026-09-24 — Metrics defined in canonical_values.json use the canonical computation
+
+**Decision:** When `reference/canonical_values.json` defines a metric, the question computes it the way `cinderhaven-data-platform/sql/canonical_gather.sql` does, not with a local approximation. q15 DSO = order-value-weighted (received_date − po_date), each order matched to remittances received 25–55 days after the start of its PO month (= 25.58, canonical `dso_days.trailing_36m`).
+
+**Why:** q15's own approximation (every delivery in the prior 90 days) produced ~45 days by construction and a working-capital figure ~5× the canonical-consistent one. Matching the canonical method makes the verdict reconcile to the portfolio's source of truth.
+
+**Do not:** reintroduce the 90-day any-delivery DSO match, or divide a multi-year total by 365.
+
+---
+
+## 2026-09-24 — Database access for renders and diagnosis: tunnel on 15432, scoped to one process
+
+**Decision:** Live-DB work (render_pdfs, read-only diagnosis) uses `fly proxy 15432:5432 -a cinderhaven-db`. DATABASE_URL is set to the 15432 URL only inside that one process (python-dotenv won't override an already-set var). No pytest while a tunnel is open. Close the tunnel immediately after and confirm `netstat -ano | findstr :15432` is empty.
+
+**Why:** A tunnel left on 5432 let a test suite in another repo query production. This repo's `.env` points at `localhost:5432`, and `POSTGRES_PASSWORD` is set machine-wide, so anything on 5432 silently becomes production.
+
+**Do not:** run `fly proxy` on 5432; leave a tunnel open between steps; rely on clearing env vars in this repo (dotenv reloads `.env`).
+
+---
+
 ## 2026-06-12 — No bulk PDF download in v1; individual PDFs ungated
 
 **Decision:** v1 ships per-question PDFs only (`GET /api/pdf/{question_id}`). No zip-all/bulk endpoint. Individual PDFs are open — no email gate.
