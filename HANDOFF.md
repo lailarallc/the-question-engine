@@ -18,7 +18,7 @@ Fix three verdicts that show wrong numbers on the live site and in the committed
 - **Push 2** (`722ee76`, deploy + canonical-drift green):
   - `e8b7eeb` q13 scores Walmart OTIF against the **2024 targets** (since 2024-02-01, SPS Commerce: 90% on-time prepaid at arrival by MABD; 98% collect-ready; 95% in-full). The old 98% floor was Walmart's 2021 rule. New `_SQL_WALMART_OTIF` replicates otif-blind-spot `scripts/02_export_json.py`; dry-run matched canonical cy2025 exactly (on-time **97.63**, in-full **86.20**). Verdict: on-time 97.6% vs 90% meets; **in-full 86.2% vs 95% misses** — that is the real gap. The 95.7% key number is relabelled "Shipped by requested date" (brand's dock, not Walmart's arrival). No prepaid/collect field in the data → prepaid assumed. `thresholds.yaml`: `otif_floor` replaced by `on_time_target_prepaid`, `in_full_target`, `walmart_mabd_days`.
   - `b695620` DECISIONS.md q13 correction note.
-  - `722ee76` `quarto/_template.qmd` title at `\Large` (titling package) so q13's title fits on one line. **Only q13 re-rendered**; the other 12 PDFs still have the larger title until re-rendered (Later #2).
+  - `722ee76` `quarto/_template.qmd` title at `\Large` (titling package) so q13's title fits on one line. Other 12 PDFs re-rendered in `3ae87e1` (Later #2).
 - Live q13 PDF is byte-identical to the approved local render. Still 2 pages (footer spill, pre-existing).
 - Tunnels closed; :15432 empty. A `fly agent run` process (PID 19760 this session, spawned by the first tunnel) may still be running — not a tunnel; see Later #12.
 
@@ -59,13 +59,13 @@ Verdict text changes: q13 drops "at current run rate" and "the ASN process is th
 
 ## Next concrete action
 
-Nothing left in this repo's current task. Later #1 and #13 done 2026-09-24. Next work: Later #2 (re-render the other 12 PDFs), then #14 (website tool-copy audit). This HANDOFF commit is notes-only and unpushed — push it with this repo's next real change.
+Nothing left in this repo's current task. Later #1, #13 and #2 done 2026-09-24. Next work: #14 (website tool-copy audit).
 
 Render procedure (kept for the next re-render, e.g. Later #2): in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
 
 ## Open questions / blockers
 
-- None blocking. q13.pdf is 2 pages (footer spill, pre-existing) — Later #5.
+- None blocking. q13.pdf and q02.pdf are 2 pages (footer spill, pre-existing) — Later #5.
 - Not in scope, flagged by the 2026-09-23 audit (see PLAN.md Improvement History): q04 labelled "distressed" but has no scenario filter and its deduction window is wider than its promo window; q11 counts pre-authorization weeks as stockouts; live app connects as the Postgres superuser with no rate limit on public verdict endpoints (q12 ~40s); Fly deploy not gated on tests; no project CLAUDE.md; stale `.claude/worktrees/lucid-tharp-ce06d6` folder; stale remote branch `origin/client-mode-2026-08`.
 
 ## Fleet state from the 2026-09-23 session (other repos, for context)
@@ -73,14 +73,14 @@ Render procedure (kept for the next re-render, e.g. Later #2): in `published/the
 - **Gitleaks on commit:** all 41 `published/` repos now block leaked keys (tracked `scripts/git-hooks/pre-commit` → pre-commit framework; 2 repos use `pre-commit install`). ~39 repos have that commit **unpushed** — push with each repo's next real change. `datascope` is diverged (local hook commit vs 2 origin commits from 2026-09-02) and needs a merge; its audit entry sits uncommitted in `.dev/PLAN.md`.
 - **History scans** (gitleaks, all branches) over published/, reference/, active/, active datasources/: no live secrets. A retired 8-char local-dev password (fingerprint b83c) is in public history; tested — dead on every cinderhaven-db role, nothing to rotate.
 - **Rollup:** `C:\Users\mssha\projects\IMPROVE-ROLLUP-2026-09-23.md` — Wave 1 (4 wrong "unmerged" top concerns corrected) + Wave 2 (19 repos, 19 critical findings). Wave 1 "committed?" column may still be stale.
-## Later list (12 open items, 2026-09-24 — each its own session; #1 and #13 done, #14 added)
+## Later list (11 open items, 2026-09-24 — each its own session; #1, #2 and #13 done, #14 added)
 
 From the OTIF correction (in order):
 1. ~~**retail-readiness-scorecard**~~ — **DONE 2026-09-24** in that repo (`f78e4b7`, pushed; all 4 CI runs green; live on `retail-readiness-scorecard.pages.dev`). Walmart question now asks about the targets that apply to the supplier (on-time 90% by MABD if prepaid, or 98% ready for pickup if collect; 95% in-full per category); penalty now "3% of COGS on non-compliant cases", matching q13. Scoring math unchanged. Live on `lailarallc.com/scorecard` via #13.
-2. **Re-render the other 12 question PDFs** here so every title matches q13's `\Large`. Safety check: compare each new PDF's text with the live version — the only change should be the title size; if any number differs, stop and show the user.
+2. ~~**Re-render the other 12 question PDFs**~~ — **DONE 2026-09-24** (`3ae87e1`). Text of all 12 identical to the previous PDFs; only change is the title size (q14's title now fits on one line).
 3. **short-ship-cost** — `scripts/rebuild_from_platform.py:71` uses 0.98 as Walmart's line-fill threshold (current in-full target is 95%); it feeds canonical dollar figures, so a change cascades. Docs: cost-engine-docs.md:262, cost-engine-benchmarks.md:28, SHORT_SHIP_REBUILD_DESIGN.md:178/450.
 4. **Website + monday-morning-report** — 9 posts in `reference/lailara-website/site/blog-posts/` quote Walmart 98% (otif-compliance-specialty-food, co-packer-agreement, cpg-channel-profitability, ten-decisions, monday-morning-report-cpg, retail-readiness-scorecard-cpg, capital-allocation, edi-compliance-routing-guide, walmart-deduction-codes); `monday-morning-report/data/metrics.py:144`. Already correct: 2026-09-02-vendor-scorecard-metrics. KeHE/Kroger 98% figures are different retailers — leave.
-5. **q13 footer spill** — get q13.pdf back to one page.
+5. **Footer spill (q13, q02)** — get q13.pdf and q02.pdf back to one page.
 
 Carried from earlier 2026-09-24:
 6. **datascope** — merge with origin (diverged: local hook commit vs 2 origin commits from 2026-09-02), commit the audit entry in `.dev/PLAN.md`, publish v2.4.0 to PyPI.
