@@ -1,7 +1,7 @@
 # HANDOFF — The Question Engine
 
 _Last updated: 2026-09-24_
-**Session:** Session 8 — q13/q04/q15 wrong-number fixes (rendered + committed, awaiting push)
+**Session:** Session 8 — q13/q04/q15 wrong-number fixes + q13 Walmart OTIF targets (all pushed + live)
 **Phase:** Phase 5 maintenance — live at ask.lailarallc.com
 
 ---
@@ -12,7 +12,15 @@ Fix three verdicts that show wrong numbers on the live site and in the committed
 
 ## Where we are
 
-**Render done, all 3 committed** (2026-09-24): `d2e8c62` q13, `74a28e4` q04, `b86f39e` q15 — each = the question's `.py` + its re-rendered `static/pdfs/qNN.pdf`. PDF text verified (pypdf) to show the numbers below and none of the old ones. Rendered over a `fly proxy 15432` tunnel, since closed (nothing listening on :15432). The user has the 3 PDFs. **Outstanding: push to origin/main, then confirm the deploy and the live PDFs at ask.lailarallc.com/api/pdf/q13, q04, q15.**
+**Done and live (2026-09-24).** Nothing outstanding in this task.
+
+- **Push 1** (`75973c5`, deploy + canonical-drift green): q13 `d2e8c62`, q04 `74a28e4`, q15 `b86f39e` + notes. Live PDFs show $8,175, $328,891, 26 days / $1,218,030.
+- **Push 2** (`722ee76`, deploy + canonical-drift green):
+  - `e8b7eeb` q13 scores Walmart OTIF against the **2024 targets** (since 2024-02-01, SPS Commerce: 90% on-time prepaid at arrival by MABD; 98% collect-ready; 95% in-full). The old 98% floor was Walmart's 2021 rule. New `_SQL_WALMART_OTIF` replicates otif-blind-spot `scripts/02_export_json.py`; dry-run matched canonical cy2025 exactly (on-time **97.63**, in-full **86.20**). Verdict: on-time 97.6% vs 90% meets; **in-full 86.2% vs 95% misses** — that is the real gap. The 95.7% key number is relabelled "Shipped by requested date" (brand's dock, not Walmart's arrival). No prepaid/collect field in the data → prepaid assumed. `thresholds.yaml`: `otif_floor` replaced by `on_time_target_prepaid`, `in_full_target`, `walmart_mabd_days`.
+  - `b695620` DECISIONS.md q13 correction note.
+  - `722ee76` `quarto/_template.qmd` title at `\Large` (titling package) so q13's title fits on one line. **Only q13 re-rendered**; the other 12 PDFs still have the larger title until re-rendered (Later #2).
+- Live q13 PDF is byte-identical to the approved local render. Still 2 pages (footer spill, pre-existing).
+- Tunnels closed; :15432 empty. A `fly agent run` process (PID 19760 this session, spawned by the first tunnel) may still be running — not a tunnel; see Later #12.
 
 Approved new numbers (dry run, 2026-09-23):
 
@@ -51,14 +59,13 @@ Verdict text changes: q13 drops "at current run rate" and "the ASN process is th
 
 ## Next concrete action
 
-Push to origin/main (after the user's go-ahead), watch the Fly deploy + canonical-drift workflows, then check the live PDFs at ask.lailarallc.com/api/pdf/q13, q04, q15 show $8,175, $328,891 and 26 days.
+Nothing left in this repo's current task. Next work is Later #1 (retail-readiness-scorecard), in a new session in that repo. This HANDOFF commit is notes-only and unpushed — push it with this repo's next real change.
 
-Render procedure used (DONE 2026-09-24, kept for the next re-render): in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
+Render procedure (kept for the next re-render, e.g. Later #2): in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
 
 ## Open questions / blockers
 
-- Rendered + committed; waiting on push. The user has seen all 3 PDFs.
-- q13.pdf is 2 pages (footer spills to page 2). The live version before this fix had the same spill, so it doesn't block this push; on the Later list.
+- None blocking. q13.pdf is 2 pages (footer spill, pre-existing) — Later #5.
 - Not in scope, flagged by the 2026-09-23 audit (see PLAN.md Improvement History): q04 labelled "distressed" but has no scenario filter and its deduction window is wider than its promo window; q11 counts pre-authorization weeks as stockouts; live app connects as the Postgres superuser with no rate limit on public verdict endpoints (q12 ~40s); Fly deploy not gated on tests; no project CLAUDE.md; stale `.claude/worktrees/lucid-tharp-ce06d6` folder; stale remote branch `origin/client-mode-2026-08`.
 
 ## Fleet state from the 2026-09-23 session (other repos, for context)
@@ -66,12 +73,28 @@ Render procedure used (DONE 2026-09-24, kept for the next re-render): in `publis
 - **Gitleaks on commit:** all 41 `published/` repos now block leaked keys (tracked `scripts/git-hooks/pre-commit` → pre-commit framework; 2 repos use `pre-commit install`). ~39 repos have that commit **unpushed** — push with each repo's next real change. `datascope` is diverged (local hook commit vs 2 origin commits from 2026-09-02) and needs a merge; its audit entry sits uncommitted in `.dev/PLAN.md`.
 - **History scans** (gitleaks, all branches) over published/, reference/, active/, active datasources/: no live secrets. A retired 8-char local-dev password (fingerprint b83c) is in public history; tested — dead on every cinderhaven-db role, nothing to rotate.
 - **Rollup:** `C:\Users\mssha\projects\IMPROVE-ROLLUP-2026-09-23.md` — Wave 1 (4 wrong "unmerged" top concerns corrected) + Wave 2 (19 repos, 19 critical findings). Wave 1 "committed?" column may still be stale.
-- **User's Later list (in order, updated 2026-09-24):** (1) confirm Walmart's 98% OTIF on-time floor (quoted on the q13 page) against a primary source; (2) fix the q13 footer spill so it's one page again; (3) datascope merge + commit audit entry + publish v2.4.0 to PyPI; (4) integration-test guard that refuses any non-local DB; (5) sweep stale `client-mode.yml` MsShawnP/per-repo-secret instructions across 7+ repos, fix Wave 1 "committed?" column, then Wave 3 (24 repos). Also still open: check the Costco "$50–$200 per ASN" fee (4 repos, one secondary source) against a primary source.
+## Later list (12 open items, 2026-09-24 — each its own session)
+
+From the OTIF correction (in order):
+1. **retail-readiness-scorecard** — the live tool scores users against the old Walmart 98% "composite" (`scoring_engine/retailers/walmart.yaml:3,108,111`, `score.py:196`, `src/data/questions.js:202-218`, `src/data/retailers.js:7`, `src/engine/scoring.js:206,223`, test `flow.test.js:195`; plus CLAUDE.md:34 and docs/). Replace with 90% on-time prepaid / 98% collect-ready / 95% in-full.
+2. **Re-render the other 12 question PDFs** here so every title matches q13's `\Large`. Safety check: compare each new PDF's text with the live version — the only change should be the title size; if any number differs, stop and show the user.
+3. **short-ship-cost** — `scripts/rebuild_from_platform.py:71` uses 0.98 as Walmart's line-fill threshold (current in-full target is 95%); it feeds canonical dollar figures, so a change cascades. Docs: cost-engine-docs.md:262, cost-engine-benchmarks.md:28, SHORT_SHIP_REBUILD_DESIGN.md:178/450.
+4. **Website + monday-morning-report** — 9 posts in `reference/lailara-website/site/blog-posts/` quote Walmart 98% (otif-compliance-specialty-food, co-packer-agreement, cpg-channel-profitability, ten-decisions, monday-morning-report-cpg, retail-readiness-scorecard-cpg, capital-allocation, edi-compliance-routing-guide, walmart-deduction-codes); `monday-morning-report/data/metrics.py:144`. Already correct: 2026-09-02-vendor-scorecard-metrics. KeHE/Kroger 98% figures are different retailers — leave.
+5. **q13 footer spill** — get q13.pdf back to one page.
+
+Carried from earlier 2026-09-24:
+6. **datascope** — merge with origin (diverged: local hook commit vs 2 origin commits from 2026-09-02), commit the audit entry in `.dev/PLAN.md`, publish v2.4.0 to PyPI.
+7. **Integration-test guard** — tests refuse any database that isn't truly local.
+8. **client-mode.yml sweep** — stale MsShawnP/per-repo-secret instructions across 7+ repos (secrets are org-level now).
+9. **Wave 1 "committed?" column** in `IMPROVE-ROLLUP-2026-09-23.md` — fix the stale column.
+10. **Wave 3** /improve audit (24 repos).
+11. **Costco ASN fee** — check the "$50–$200 per ASN" figure (4 repos, one secondary source) against a primary source.
+12. **Stop the fly agent at session end** — `fly proxy` spawns a background `fly agent run` that outlives the tunnel (found 2026-09-24; also a tunnel on 15432 was found already running before one render). Check `Get-Process flyctl` at wrap and stop leftovers.
 
 ## Key files to load
 
 - `engine/questions/q13_otif_exposure.py`, `q04_trade_spend.py`, `q15_cash_conversion.py` — the fixes (committed d2e8c62 / 74a28e4 / b86f39e)
-- `config/thresholds.yaml` — `q13.penalty_per_asn_late: 25`, `otif_floor: 0.98`; `q15.dso_warning: 45`
+- `config/thresholds.yaml` — `q13.penalty_per_asn_late: 25`, `on_time_target_prepaid: 0.90`, `in_full_target: 0.95`, `walmart_mabd_days: 3`; `q15.dso_warning: 45`
 - `reference/canonical_values.json` — source of truth for the q04 and q15 numbers
 - `scripts/render_pdfs.py` — renders `static/pdfs/{qid}.pdf` (needs DATABASE_URL + quarto; R 4.6.0 is found by quarto without PATH)
 - `C:\Users\mssha\projects\active datasources\cinderhaven-data-platform\sql\canonical_gather.sql` — canonical DSO definition (line ~199)
@@ -85,9 +108,9 @@ Render procedure used (DONE 2026-09-24, kept for the next re-render): in `publis
 
 **Did:** Gitleaks pre-commit on all 41 published/ repos (fake-key tested); engagement deploy guard cherry-picked to main here + 2 repos; q13 $200→$25 pushed (incomplete — all retailers, 3 yrs); fleet secret-history scans clean (b83c password dead); Wave 2 /improve audit (19 repos) found q13/q04/q15 wrong live numbers; diagnosed + edited all 3 with canonical checks, dry-run verified. Closed a prod tunnel a test had read through.
 
-**State:** q13/q04/q15 rendered + committed (d2e8c62 / 74a28e4 / b86f39e; tests 15/15, drift gate clean); not pushed, so the live site still shows old numbers. Tunnels closed.
+**State:** q13/q04/q15 fixes + q13 OTIF targets + title fix all pushed and live (75973c5, 722ee76; deploys green; tests 15/15, drift gate clean). Tunnels closed.
 
-**Next:** Push → follow "Next concrete action" above. Tracked sibling (checked, not fixed): multi-year totals shown with no window label — q04 "Total deductions $1,118,682", q15 "$6.66M of $52.1M invoiced", q08 "realized" compliance total — same unlabeled-window defect q13 had; decide per-year vs labelled window after the render.
+**Next:** Later #1 (retail-readiness-scorecard) in a new session. Tracked sibling (checked, not fixed): multi-year totals shown with no window label — q04 "Total deductions $1,118,682", q15 "$6.66M of $52.1M invoiced", q08 "realized" compliance total — same unlabeled-window defect q13 had; decide per-year vs labelled window after the render.
 
 ---
 
