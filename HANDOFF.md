@@ -59,7 +59,7 @@ Verdict text changes: q13 drops "at current run rate" and "the ASN process is th
 
 ## Next concrete action
 
-Nothing left in this repo's current task. Next work is Later #1 (retail-readiness-scorecard), in a new session in that repo. This HANDOFF commit is notes-only and unpushed — push it with this repo's next real change.
+Nothing left in this repo's current task. Later #1 done 2026-09-24. Next work: Later #13 (public scorecard copy) or Later #2 (re-render the other 12 PDFs). This HANDOFF commit is notes-only and unpushed — push it with this repo's next real change.
 
 Render procedure (kept for the next re-render, e.g. Later #2): in `published/the-question-engine`, (1) `fly proxy 15432:5432 -a cinderhaven-db` in the background; (2) from the repo root, render only q13, q04, q15 with a small throwaway Python wrapper that reads the `.env` DATABASE_URL, swaps its port to 15432, sets `os.environ["DATABASE_URL"]` in that process only (never printed), then runs `scripts.render_pdfs` with args `q13 q04 q15` (equivalent to `python -m scripts.render_pdfs q13 q04 q15`, but pointed at 15432); (3) stop the proxy and confirm `netstat -ano | findstr :15432` prints nothing; (4) verify each PDF's text (pypdf) shows the new numbers in the table above; (5) commit one per question, each = that question's `.py` + its `static/pdfs/qNN.pdf` (gitleaks hook runs; never `--no-verify`); (6) send the 3 PDFs to the user and **wait before pushing**. (The q13 notes in `DECISIONS.md` and the HANDOFF verdict table already say $8,175 — updated in f3a1179.)
 
@@ -73,10 +73,10 @@ Render procedure (kept for the next re-render, e.g. Later #2): in `published/the
 - **Gitleaks on commit:** all 41 `published/` repos now block leaked keys (tracked `scripts/git-hooks/pre-commit` → pre-commit framework; 2 repos use `pre-commit install`). ~39 repos have that commit **unpushed** — push with each repo's next real change. `datascope` is diverged (local hook commit vs 2 origin commits from 2026-09-02) and needs a merge; its audit entry sits uncommitted in `.dev/PLAN.md`.
 - **History scans** (gitleaks, all branches) over published/, reference/, active/, active datasources/: no live secrets. A retired 8-char local-dev password (fingerprint b83c) is in public history; tested — dead on every cinderhaven-db role, nothing to rotate.
 - **Rollup:** `C:\Users\mssha\projects\IMPROVE-ROLLUP-2026-09-23.md` — Wave 1 (4 wrong "unmerged" top concerns corrected) + Wave 2 (19 repos, 19 critical findings). Wave 1 "committed?" column may still be stale.
-## Later list (12 open items, 2026-09-24 — each its own session)
+## Later list (12 open items, 2026-09-24 — each its own session; #1 done, #13 added)
 
 From the OTIF correction (in order):
-1. **retail-readiness-scorecard** — the live tool scores users against the old Walmart 98% "composite" (`scoring_engine/retailers/walmart.yaml:3,108,111`, `score.py:196`, `src/data/questions.js:202-218`, `src/data/retailers.js:7`, `src/engine/scoring.js:206,223`, test `flow.test.js:195`; plus CLAUDE.md:34 and docs/). Replace with 90% on-time prepaid / 98% collect-ready / 95% in-full.
+1. ~~**retail-readiness-scorecard**~~ — **DONE 2026-09-24** in that repo (`f78e4b7`, pushed; all 4 CI runs green; live on `retail-readiness-scorecard.pages.dev`). Walmart question now asks about the targets that apply to the supplier (on-time 90% by MABD if prepaid, or 98% ready for pickup if collect; 95% in-full per category); penalty now "3% of COGS on non-compliant cases", matching q13. Scoring math unchanged. **Not yet on `lailarallc.com/scorecard`** — see #13.
 2. **Re-render the other 12 question PDFs** here so every title matches q13's `\Large`. Safety check: compare each new PDF's text with the live version — the only change should be the title size; if any number differs, stop and show the user.
 3. **short-ship-cost** — `scripts/rebuild_from_platform.py:71` uses 0.98 as Walmart's line-fill threshold (current in-full target is 95%); it feeds canonical dollar figures, so a change cascades. Docs: cost-engine-docs.md:262, cost-engine-benchmarks.md:28, SHORT_SHIP_REBUILD_DESIGN.md:178/450.
 4. **Website + monday-morning-report** — 9 posts in `reference/lailara-website/site/blog-posts/` quote Walmart 98% (otif-compliance-specialty-food, co-packer-agreement, cpg-channel-profitability, ten-decisions, monday-morning-report-cpg, retail-readiness-scorecard-cpg, capital-allocation, edi-compliance-routing-guide, walmart-deduction-codes); `monday-morning-report/data/metrics.py:144`. Already correct: 2026-09-02-vendor-scorecard-metrics. KeHE/Kroger 98% figures are different retailers — leave.
@@ -90,6 +90,7 @@ Carried from earlier 2026-09-24:
 10. **Wave 3** /improve audit (24 repos).
 11. **Costco ASN fee** — check the "$50–$200 per ASN" figure (4 repos, one secondary source) against a primary source.
 12. **Stop the fly agent at session end** — `fly proxy` spawns a background `fly agent run` that outlives the tunnel (found 2026-09-24; also a tunnel on 15432 was found already running before one render). Check `Get-Process flyctl` at wrap and stop leftovers.
+13. **Public scorecard is a stale copy** — `lailarallc.com/scorecard` embeds `lailara-website/site/public/tools/retail-readiness-scorecard.html` (hand-copied, last updated 2026-07-08; nothing syncs it). It still says "98% composite" and predates the scorecard's 2026-07-31 C2 fix. Fix: copy the scorecard's `dist/retail-readiness-scorecard.html` over it, check the `?embedded&gatepdf` mode and PDF email gate still work, one commit, push (site deploy workflow publishes it).
 
 ## Key files to load
 
