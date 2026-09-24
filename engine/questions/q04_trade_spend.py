@@ -37,10 +37,13 @@ GROUP BY LOWER(deduction_type)
 ORDER BY gross_amount DESC
 """
 
+# No filter on funding_mechanism: no row has the value 'manufacturer'. The actual
+# values (off_invoice, MCB, scan_based, billback) are all manufacturer-funded, same
+# fix as q02 (FAILURES.md 2026-06-10). Total = canonical trade.promotional_spend.trailing_36m.
 _SQL_PROMO = """
 SELECT
     SUM(promo_cost)                AS total_promo_cost,
-    SUM(CASE WHEN funding_mechanism = 'manufacturer' THEN promo_cost ELSE 0 END) AS mfr_funded,
+    SUM(promo_cost)                AS mfr_funded,
     COUNT(*)                       AS promo_count
 FROM public_marts.fct_promotions
 """
