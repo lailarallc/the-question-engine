@@ -55,7 +55,9 @@ q13:
   # Am I about to get hit with OTIF penalties I can't see?
   asn_late_rate_threshold: 0.05         # > 5% late ASN rate = OTIF exposure; fires the verdict
   penalty_per_asn_late: 25              # $25 per late-ASN PO (Walmart SQEP ASN defect fee; excludes the larger 3%-of-COGS OTIF exposure)
-  otif_floor: 0.98                      # Walmart large-supplier OTIF target (98%)
+  on_time_target_prepaid: 0.90          # Walmart on-time target, prepaid, measured at arrival by MABD (since 2024-02-01; SPS Commerce). Collect-ready is 98%; data has no collect flag, prepaid assumed
+  in_full_target: 0.95                  # Walmart in-full target, per merchandise category (since 2024-02-01)
+  walmart_mabd_days: 3                  # MABD = requested_ship_date + 3 days (otif-blind-spot RETAILER_MABD_DAYS; matches canonical otif block)
 
 q14:
   # Which SKUs are slowing down before the buyer notices?
