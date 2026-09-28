@@ -9,9 +9,12 @@ exposure = Walmart late-ASN count × PENALTY_PER_ASN_LATE.
 
 The $25/PO fee is Walmart's SQEP Phase 1 ASN defect fee, so only Walmart late
 ASNs are priced. Other retailers' ASN fees are unknown and excluded (the page
-says so). Walmart delivery is scored Walmart's way (arrival by MABD, units
-received), matching the canonical otif block: on-time vs the 90% prepaid
-target, in-full vs 95%. The OTIF fine (a % of COGS) is not dollarized here.
+says so). Walmart on-time is scored at arrival by MABD against the 90% prepaid
+target. The in-full figure is the share of Walmart POs shipped complete, a real
+metric but not Walmart's in-full score, which is case-weighted (cases delivered
+/ cases ordered, anchor A5.16) against 95%. Walmart fines 3% of COGS on every
+short or late case regardless of the monthly score (A5.17); that fine is not
+dollarized here.
 
 Routes to: OTIF Blind Spot.
 """
@@ -63,11 +66,13 @@ GROUP BY dr.retailer_name
 ORDER BY late_asn DESC
 """
 
-# Walmart OTIF scored the way Walmart does, replicating otif-blind-spot
+# Walmart on-time and PO completeness, replicating otif-blind-spot
 # scripts/02_export_json.py (the canonical otif block): on time = delivered by
-# MABD (requested_ship_date + mabd_days); in full = units received >= units
-# ordered, with the same fallbacks (0 received -> units shipped; 0 ordered on
-# lines -> PO total units). Periods by po_date, as in canonical.
+# MABD (requested_ship_date + mabd_days); in_full_rate = share of Walmart POs
+# shipped complete (units received >= units ordered), with the same fallbacks
+# (0 received -> units shipped; 0 ordered on lines -> PO total units). This is
+# not Walmart's in-full score, which is case-weighted (A5.16). Periods by
+# po_date, as in canonical.
 _SQL_WALMART_OTIF = _YEAR_CTE + """,
 sl AS (
     SELECT shipment_id, SUM(units_ordered) AS uo, SUM(units_shipped) AS us
@@ -143,10 +148,12 @@ class OtifExposureQuestion(BaseQuestion):
             return "meets" if rate >= target else "misses"
 
         delivery_note = (
-            f"Scored Walmart's way (arrival by MABD, POs dated {window_year}), Walmart on-time is "
-            f"{wm_on_time:.1%} against its {on_time_target:.0%} prepaid target ({_vs(wm_on_time, on_time_target)}), "
-            f"and in-full is {wm_in_full:.1%} against {in_full_target:.0%} ({_vs(wm_in_full, in_full_target)}). "
-            f"The OTIF fine (3% of COGS on failing cases) is separate and not in this figure."
+            f"Scored at arrival by MABD (POs dated {window_year}), Walmart on-time is "
+            f"{wm_on_time:.1%} against its {on_time_target:.0%} prepaid target ({_vs(wm_on_time, on_time_target)}). "
+            f"{wm_in_full:.1%} is the share of Walmart POs shipped complete, not Walmart's in-full score, "
+            f"which is case-weighted (cases delivered ÷ cases ordered) against a {in_full_target:.0%} target. "
+            f"Walmart fines 3% of COGS on every short or late case regardless of the monthly score; "
+            f"that fine is not in this figure."
         )
 
         if asn_late_rate > cfg["asn_late_rate_threshold"]:
@@ -203,8 +210,8 @@ class OtifExposureQuestion(BaseQuestion):
                 KeyNumber(
                     label=f"Shipped by requested date, {window_year}",
                     value=f"{on_time_rate:.1%}",
-                    context=(f"All retailers, at the brand's dock. Walmart measures arrival: "
-                             f"{wm_on_time:.1%} on time, {wm_in_full:.1%} in full"),
+                    context=(f"All retailers, at the brand's dock. Walmart, at arrival: "
+                             f"{wm_on_time:.1%} on time; share of Walmart POs shipped complete {wm_in_full:.1%}"),
                 ),
             ],
             chart=chart_data,
@@ -215,9 +222,12 @@ class OtifExposureQuestion(BaseQuestion):
                 f"Fires when the all-retailer asn_sent_late rate > {cfg['asn_late_rate_threshold']:.0%}. "
                 f"Walmart targets since 2024-02-01 (SPS Commerce; Walmart's own spec is in Retail Link): "
                 f"{on_time_target:.0%} on-time for prepaid, measured at arrival by MABD (requested ship date + "
-                f"{cfg['walmart_mabd_days']} days); 98% ready for collect pickup; {in_full_target:.0%} in-full "
-                f"(every unit ordered was received). The data has no prepaid/collect flag, so prepaid is assumed. "
-                f"Walmart OTIF uses POs dated {window_year}; the OTIF fine is not dollarized. "
+                f"{cfg['walmart_mabd_days']} days); 98% ready for collect pickup; {in_full_target:.0%} in-full, "
+                f"case-weighted (cases delivered ÷ cases ordered). Share of Walmart POs shipped complete = "
+                f"Walmart POs whose units received cover units ordered; it is not Walmart's in-full score. "
+                f"The data has no prepaid/collect flag, so prepaid is assumed. Walmart OTIF uses POs dated {window_year}. "
+                f"Walmart fines 3% of COGS on every short or late case regardless of the monthly score; "
+                f"that fine is not dollarized here. "
                 f"Window: calendar {window_year}, the same year used in q15. "
                 f"Late ASN = ASN arrived after ship date (asn_sent_late = true in fct_retailer_shipments)."
             ),
