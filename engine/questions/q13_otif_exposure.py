@@ -12,9 +12,8 @@ ASNs are priced. Other retailers' ASN fees are unknown and excluded (the page
 says so). Walmart on-time is scored at arrival by MABD against the 90% prepaid
 target. The in-full figure is the share of Walmart POs shipped complete, a real
 metric but not Walmart's in-full score, which is case-weighted (cases delivered
-/ cases ordered, anchor A5.16) against 95%. Walmart fines 3% of COGS on every
-short or late case regardless of the monthly score (A5.17); that fine is not
-dollarized here.
+/ cases ordered, anchor A5.16) against 95%. Walmart fines 3% of COGS on late
+or short cases (A5.17); that fine is not dollarized here.
 
 Routes to: OTIF Blind Spot.
 """
@@ -152,7 +151,7 @@ class OtifExposureQuestion(BaseQuestion):
             f"{wm_on_time:.1%} against its {on_time_target:.0%} prepaid target ({_vs(wm_on_time, on_time_target)}). "
             f"{wm_in_full:.1%} is the share of Walmart POs shipped complete, not Walmart's in-full score, "
             f"which is case-weighted (cases delivered ÷ cases ordered) against a {in_full_target:.0%} target. "
-            f"Walmart fines 3% of COGS on every short or late case regardless of the monthly score; "
+            f"Walmart fines 3% of COGS on late or short cases; "
             f"that fine is not in this figure."
         )
 
@@ -226,7 +225,7 @@ class OtifExposureQuestion(BaseQuestion):
                 f"case-weighted (cases delivered ÷ cases ordered). Share of Walmart POs shipped complete = "
                 f"Walmart POs whose units received cover units ordered; it is not Walmart's in-full score. "
                 f"The data has no prepaid/collect flag, so prepaid is assumed. Walmart OTIF uses POs dated {window_year}. "
-                f"Walmart fines 3% of COGS on every short or late case regardless of the monthly score; "
+                f"Walmart fines 3% of COGS on late or short cases; "
                 f"that fine is not dollarized here. "
                 f"Window: calendar {window_year}, the same year used in q15. "
                 f"Late ASN = ASN arrived after ship date (asn_sent_late = true in fct_retailer_shipments)."
