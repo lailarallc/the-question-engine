@@ -106,6 +106,8 @@
 
 **Correction (2026-09-28):** The 86.2% is the share of Walmart POs shipped complete (units received cover units ordered, per shipment), a real metric but not Walmart's in-full score. Walmart's in-full scorecard is case-weighted: cases delivered ÷ cases ordered, per PO line, monthly (registry anchor A5.16, cinderhaven-data-realism). q13 no longer compares 86.2% with the 95% target. Walmart fines 3% of COGS on late or short cases. Sources disagree on whether the fine is gated on the monthly score (SPS Commerce: all non-compliant cases; 8th & Walton: "cumulative by month"; RetailPath: missing the target does not mean a fine on every shipment), and only Walmart's own documents can settle it. Registry anchor A5.17 assumes no gate, as a modeling assumption; public copy is worded to be true either way. The fine is still not dollarized. On-time (97.6%) is still a share of shipments, not case-weighted.
 
+**Correction (2026-09-28, later):** q13 now scores Walmart OTIF by case, as A5.16 defines it: 2025 on-time 95.6% (cases delivered by MABD ÷ cases ordered, excluding 127 lines shipped Dec 31–Jan 5 with no delivery date yet; 94.7% if they count as late) and in-full 97.9% (whole cases delivered ÷ cases ordered). Both pass in all 12 months, so Walmart's exposure in q13 is the ASN fee, not OTIF. The 86.2% share of POs shipped complete and the all-retailer "shipped by requested date" card are removed.
+
 **Why:** In the Cinderhaven dataset, all 46,760 shipments have `is_on_time = true` (zero late deliveries). Late ASN is the only live OTIF signal — and it's the blind spot the question targets: Walmart counts late ASN as an OTIF violation even when product arrives on time.
 
 ---
