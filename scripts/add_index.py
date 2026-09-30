@@ -3,6 +3,9 @@ import os
 import time
 from sqlalchemy import create_engine, text
 
+from scripts import prod_guard
+
+prod_guard.check(os.environ["DATABASE_URL"])
 engine = create_engine(os.environ["DATABASE_URL"])
 with engine.connect() as conn:
     conn = conn.execution_options(isolation_level="AUTOCOMMIT")

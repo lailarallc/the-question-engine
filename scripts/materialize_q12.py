@@ -2,10 +2,14 @@
 Run q12 heavy SQL locally and store results in lightweight DB tables.
 Run once via: python -m scripts.materialize_q12
 Production q12 then reads from these tables (instant).
+To write through a fly proxy tunnel to production, set ALLOW_PROD_DB=1.
 """
 import os
 from sqlalchemy import create_engine, text
 
+from scripts import prod_guard
+
+prod_guard.check(os.environ["DATABASE_URL"])
 engine = create_engine(os.environ["DATABASE_URL"])
 
 _SQL_SUMMARY = """

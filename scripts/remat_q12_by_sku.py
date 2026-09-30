@@ -2,6 +2,9 @@
 import os
 from sqlalchemy import create_engine, text
 
+from scripts import prod_guard
+
+prod_guard.check(os.environ["DATABASE_URL"])
 engine = create_engine(os.environ["DATABASE_URL"])
 
 _SQL_BY_SKU = """
