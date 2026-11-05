@@ -26,7 +26,7 @@ Approved new numbers (dry run, 2026-09-23):
 
 | | old (live now) | new | source / check |
 |---|---|---|---|
-| q13 Walmart ASN fees | $100,150 (3 yrs × all 6 retailers × $25) | **$8,175** = 327 Walmart late ASNs in **2025** × $25 | per-retailer count; window = same year q15 uses |
+| q13 national mass retailer ASN fees | $100,150 (3 yrs × all 6 retailers × $25) | **$8,175** = 327 national mass retailer late ASNs in **2025** × $25 | per-retailer count; window = same year q15 uses |
 | q04 manufacturer promo spend | $0 | **$328,891** | = canonical `trade.promotional_spend.trailing_36m` 328,890.88 |
 | q15 DSO | 44 days | **26 days** (25.58) | = canonical `workingcapital.dso_days.trailing_36m` |
 | q15 working capital in transit | $6,292,586 | **$1,218,030** | = 2025 gross 17,380,018.08 (canonical `revenue.gross_payments_retailer.trailing_12m`) ÷ 365 × 25.58 |
@@ -36,14 +36,14 @@ Verdict text changes: q13 drops "at current run rate" and "the ASN process is th
 ## What was tried this session
 
 - Read-only diagnosis of q13/q04/q15 (code + `reference/canonical_values.json` + read-only SELECTs over a tunnel) — found the causes below; user approved.
-- q13 window: offered 3-year total ($22,425) or ÷3 annualized (~$7,434) — user rejected both; chose **actual count of Walmart late ASNs in the same 12-month window as q15** (calendar 2025) → $8,175.
+- q13 window: offered 3-year total ($22,425) or ÷3 annualized (~$7,434) — user rejected both; chose **actual count of national mass retailer late ASNs in the same 12-month window as q15** (calendar 2025) → $8,175.
 - q15 annual gross: offered last full calendar year ($1,218,030, matches canonical) vs trailing-365 to latest payment ($1,375,276) — user chose **last full calendar year**.
 - Dry-ran all three edited questions' `run()` against the DB → numbers above. Confirmed shipments:POs is 1:1 (46,760 each), so "per late-ASN PO" = per late-ASN shipment.
 
 ## What worked
 
 - **Causes (verified):**
-  - q13: priced late ASNs from all 6 retailers at Walmart's SQEP $25/PO fee; counted 3 years but said "current run rate"; hardcoded "ASN is the only gap" despite 1,948 late deliveries.
+  - q13: priced late ASNs from all 6 retailers at Walmart's SQEP $25/PO fee; counted 3 years but said "current run rate"; hardcoded "ASN is the only gap" despite 1,948 late deliveries. <!-- label-ok: Walmart's published SQEP fee -->
   - q04: `WHERE funding_mechanism = 'manufacturer'` matches zero rows (values are off_invoice/MCB/scan_based/billback) — identical to the q02 bug in FAILURES.md 2026-06-10. Fix = drop the filter.
   - q15 DSO: matched each payment to every delivery in the prior 90 days → ~45 days by construction. Replaced with the canonical method from `active datasources/cinderhaven-data-platform/sql/canonical_gather.sql` (order-value-weighted `received_date − po_date`, remittance received 25–55 days after start of PO month). Gives exactly 25.58 on the marts.
   - q15 working capital: divided ~3 years of gross ($52.1M) by 365 → ~3× too big. Now uses last full calendar year.
@@ -88,7 +88,7 @@ Carried from earlier 2026-09-24:
 8. **client-mode.yml sweep** — stale MsShawnP/per-repo-secret instructions across 7+ repos (secrets are org-level now).
 9. **Wave 1 "committed?" column** in `IMPROVE-ROLLUP-2026-09-23.md` — fix the stale column.
 10. **Wave 3** /improve audit (24 repos).
-11. **Costco ASN fee** — check the "$50–$200 per ASN" figure (4 repos, one secondary source) against a primary source.
+11. **Costco ASN fee** — check the "$50–$200 per ASN" figure (4 repos, one secondary source) against a primary source. <!-- label-ok: Costco's published fee -->
 12. **Stop the fly agent at session end** — `fly proxy` spawns a background `fly agent run` that outlives the tunnel (found 2026-09-24; also a tunnel on 15432 was found already running before one render). Check `Get-Process flyctl` at wrap and stop leftovers.
 13. ~~**Public scorecard is a stale copy**~~ — **DONE 2026-09-24.** `lailara-website` `38fbde7` replaced `site/public/tools/retail-readiness-scorecard.html` with the scorecard's dist build at `f78e4b7` (only change a deploy could publish — prior deploy = HEAD `d2b1352`). Pushed; Deploy to Cloudflare Workers, canonical-drift, CodeQL all green. Clicked through the live Walmart flow: new OTIF question shows; FSMA 204 = No gives EDI Red · 0% with the "can cap or fail a dimension" legend (07-31 C2 fix). PDF email gate not clicked (postMessage contract `scorecard-request-pdf`/`scorecard-proceed-pdf` unchanged; optional later check with test@example.com). **Still manual:** nothing syncs this copy — re-copy it after every scorecard release.
 14. ~~**Audit every website tool copy**~~ — **DONE 2026-09-24.** Only `monday-morning-report.xlsx` was stale (it said "below 95%" and named Target); fixed via #15. Original task: read-only. For each file in `reference/lailara-website/site/public/tools/` (as of 2026-09-24: `retail-readiness-scorecard.html`, `monday-morning-report.xlsx`, `trade-spend-diagnostic.xlsx`), compare against its source repo's current dist/build output. Report a table: tool | copy date (last website commit) | source date (last source build commit) | stale y/n. Scorecard is current as of `38fbde7`. Don't copy anything without the user's OK.
@@ -119,7 +119,7 @@ Carried from earlier 2026-09-24:
 
 ## 2026-09-23 — Session 8 (earlier part): q13 fee + guards landed
 
-- Pushed to origin/main (deploy + canonical-drift green): gitleaks pre-commit hook, engagement deploy guard (scaffold + fly-deploy.yml guard step), q13 `penalty_per_asn_late` 200 → 25, re-rendered q13.pdf, HANDOFF/DECISIONS notes. Live q13 then showed $100,150 — superseded by the Walmart-only 2025 fix above.
+- Pushed to origin/main (deploy + canonical-drift green): gitleaks pre-commit hook, engagement deploy guard (scaffold + fly-deploy.yml guard step), q13 `penalty_per_asn_late` 200 → 25, re-rendered q13.pdf, HANDOFF/DECISIONS notes. Live q13 then showed $100,150 — superseded by the national mass retailer-only 2025 fix above.
 
 ---
 
@@ -173,7 +173,7 @@ Carried from earlier 2026-09-24:
 | q10 | **money left + broken process** | 61% expired deductions, win rate below 50% |
 | q11 | **$4.6M implied stockout cost** | 144,790 zero-velocity store-weeks at authorized locations |
 | q12 | **43.9% MAPE — forecast broken** | Forecast errors > 30% threshold; worst SKU needs investigation |
-| q13 | **8.6% ASN late — $8,175 exposure** | 327 Walmart late ASNs in 2025 × $25/PO (Walmart only; other retailers' fees unknown). *2026-09-23: was $801K at $200/incident — $200 is the DSDC "ASN Not Downloaded" fee, not Late ASN. 2026-09-24: was $100,150 (4,006 late ASNs, all 6 retailers, 3 years).* |
+| q13 | **8.6% ASN late — $8,175 exposure** | 327 national mass retailer late ASNs in 2025 × $25/PO (national mass retailer only; other retailers' fees unknown). *2026-09-23: was $801K at $200/incident — $200 is the DSDC "ASN Not Downloaded" fee, not Late ASN. 2026-09-24: was $100,150 (4,006 late ASNs, all 6 retailers, 3 years).* |
 | q14 | all SKUs accelerating | Portfolio +36.2% avg; slowest is Everything Bagel Spread at +24.7% |
 | q15 | **13.2% deduction drag** | $6.8M deducted from $52M invoiced; DSO ~44 days |
 

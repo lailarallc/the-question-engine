@@ -4,9 +4,9 @@
 
 ## 2026-09-24 — Dollar figures are per-year for a named calendar year; retailer-specific fees stay with their retailer
 
-**Decision:** A verdict's dollar figure is an actual count for one named window: the last full calendar year of data (`EXTRACT(YEAR FROM MAX(received_date) + 1) - 1` on `fct_retailer_payments`), shared by q13 and q15, and the page names that year. A fee or threshold that belongs to one retailer (Walmart SQEP $25/PO) is applied only to that retailer; retailers whose fee is unknown are excluded and the page says so.
+**Decision:** A verdict's dollar figure is an actual count for one named window: the last full calendar year of data (`EXTRACT(YEAR FROM MAX(received_date) + 1) - 1` on `fct_retailer_payments`), shared by q13 and q15, and the page names that year. A fee or threshold that belongs to one retailer (Walmart SQEP $25/PO) is applied only to that retailer; retailers whose fee is unknown are excluded and the page says so. <!-- label-ok: Walmart's published SQEP fee -->
 
-**Why:** The rest of the portfolio states figures per year (e.g. short-ship's $298K/yr). A 3-year total next to annual figures reads as a smaller problem; dividing it by 3 is an estimate that won't survive a CFO's questions. Pricing all 6 retailers at Walmart's fee overstated q13 ~12× ($100,150 vs $8,175).
+**Why:** The rest of the portfolio states figures per year (e.g. short-ship's $298K/yr). A 3-year total next to annual figures reads as a smaller problem; dividing it by 3 is an estimate that won't survive a CFO's questions. Pricing all 6 retailers at the national mass retailer's fee overstated q13 ~12× ($100,150 vs $8,175).
 
 **Do not:** show multi-year totals as "current run rate"; annualize by dividing a multi-year total by N; apply one retailer's fee or floor to other retailers.
 
@@ -96,11 +96,11 @@
 
 ## 2026-06-10 — Q13 uses late ASN as OTIF signal, not delivery lateness
 
-**Decision:** Q13 measures `asn_sent_late` rate, not `is_on_time` rate. Exposure = Walmart late ASNs in the last full calendar year × $25/PO (2025: 327 × $25 = $8,175).
+**Decision:** Q13 measures `asn_sent_late` rate, not `is_on_time` rate. Exposure = national mass retailer late ASNs in the last full calendar year × $25/PO (2025: 327 × $25 = $8,175).
 
-**Correction (2026-09-23):** Originally $200/incident ($801,200). $200 is Walmart SQEP's DSDC/pharmacy "ASN Not Downloaded" fee, not Late ASN; SQEP Phase 1 charges a flat $25/PO for all other ASN defects, including Late ASN.
+**Correction (2026-09-23):** Originally $200/incident ($801,200). $200 is the national mass retailer's SQEP DSDC/pharmacy "ASN Not Downloaded" fee, not Late ASN; SQEP Phase 1 charges a flat $25/PO for all other ASN defects, including Late ASN.
 
-**Correction (2026-09-24):** The 09-23 figure ($100,150 = 4,006 × $25) applied Walmart's fee to late ASNs from all 6 retailers over 3 years. Now Walmart only, 2025 only (same window as q15): 327 × $25 = $8,175. Other retailers' ASN fees are unknown and excluded. The "zero late deliveries" premise below no longer holds: on-time is 95.7% overall / 95.9% Walmart (1,948 late deliveries), below the 98% floor; the verdict states this but does not dollarize the OTIF fine.
+**Correction (2026-09-24):** The 09-23 figure ($100,150 = 4,006 × $25) applied the national mass retailer's fee to late ASNs from all 6 retailers over 3 years. Now national mass retailer only, 2025 only (same window as q15): 327 × $25 = $8,175. Other retailers' ASN fees are unknown and excluded. The "zero late deliveries" premise below no longer holds: on-time is 95.7% overall / 95.9% national mass retailer (1,948 late deliveries), below the 98% floor; the verdict states this but does not dollarize the OTIF fine.
 
 **Correction (2026-09-24, later):** The 98% floor was Walmart's 2021 combined OTIF rule. Since 2024-02-01 the targets are 90% on-time for prepaid (measured at arrival by MABD), 98% ready for collect pickup, 95% in-full per merchandise category (SPS Commerce supplier wiki; Walmart's own spec is behind Retail Link). The data has no prepaid/collect field, so prepaid is assumed. q13 now scores Walmart the way Walmart does, replicating otif-blind-spot's scoring (matches canonical cy2025 exactly): on-time 97.6% vs 90% (meets), **in-full 86.2% vs 95% (misses by ~9 pts)** — in-full is the real gap, not on-time. The 95.7% on the page measures ship date vs requested date at the brand's dock, so it is labelled "shipped by requested date" and never set against Walmart's target. Do not quote 98% as Walmart's overall OTIF bar; do not compare a ship-date on-time rate with Walmart's arrival-based target.
 

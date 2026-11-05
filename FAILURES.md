@@ -138,11 +138,11 @@
 
 ## 2026-09-23 — Q13 fee fix shipped with the wrong scope and window
 
-**What was tried:** Changed `penalty_per_asn_late` from 200 to 25 (Walmart SQEP $25/PO), re-rendered q13.pdf, pushed. Live q13 showed $100,150.
+**What was tried:** Changed `penalty_per_asn_late` from 200 to 25 (national mass retailer SQEP $25/PO), re-rendered q13.pdf, pushed. Live q13 showed $100,150.
 
 **Why it failed:** Only the fee *amount* was verified. The code priced late ASNs from all 6 retailers at a Walmart-only fee, summed 3 years of shipments, and called the total "current run rate". The verdict also hardcoded "the ASN process is the only gap" while the same query showed 95.8% on-time (1,948 late deliveries) against a 98% floor.
 
-**Fix:** Walmart late ASNs only, counted in the last full calendar year (2025, same window as q15) → $8,175; other retailers' fees stated as unknown and excluded; window named on every q13 number; on-time shortfall stated.
+**Fix:** National mass retailer late ASNs only, counted in the last full calendar year (2025, same window as q15) → $8,175; other retailers' fees stated as unknown and excluded; window named on every q13 number; on-time shortfall stated.
 
 **Lesson:** When fixing a rate, also verify who it applies to and over what window. A correct rate × the wrong base is still a wrong number.
 
