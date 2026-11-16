@@ -2,6 +2,18 @@
 
 ---
 
+## 2026-11-16 — Verdicts show partner role labels, never real partner names
+
+**Decision:** Every partner name leaves the database layer as its role label (`engine/labels.py`, applied in `db/connection.py:query`). The label map is vendored from lailara-website (`reference/retailer_display_labels.json`). The q13 verdict, key numbers and rule note were reworded to say "the national mass retailer". q07 keeps its question title: it carries no Cinderhaven dollar figure.
+
+**Why:** Owner rule of 2026-11-05: a real partner name never shares a sentence, table row, chart or card with a Cinderhaven dollar figure. Five verdicts broke it.
+
+**Not covered:** `static/pdfs/` are pre-rendered and still carry real names in q02, q13 and q15 (and possibly inside chart images elsewhere). They need `make pdfs` with database access and Quarto.
+
+**Do not:** build a verdict string, key number or chart label from a partner name that did not pass through `engine/labels.py`. `tests/test_labels.py` covers this.
+
+---
+
 ## 2026-09-24 — Dollar figures are per-year for a named calendar year; retailer-specific fees stay with their retailer
 
 **Decision:** A verdict's dollar figure is an actual count for one named window: the last full calendar year of data (`EXTRACT(YEAR FROM MAX(received_date) + 1) - 1` on `fct_retailer_payments`), shared by q13 and q15, and the page names that year. A fee or threshold that belongs to one retailer (Walmart SQEP $25/PO) is applied only to that retailer; retailers whose fee is unknown are excluded and the page says so. <!-- label-ok: Walmart's published SQEP fee -->

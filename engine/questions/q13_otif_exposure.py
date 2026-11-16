@@ -162,26 +162,26 @@ class OtifExposureQuestion(BaseQuestion):
             pass_clause = (f"; for the year on-time {_vs(wm_on_time, on_time_target)} its target and in-full "
                            f"{_vs(wm_in_full, in_full_target)} its target, and both pass in "
                            f"{months_passing} of {n_months} months")
-        exposure_clause = ("Walmart's exposure here is the ASN fee, not OTIF. "
+        exposure_clause = ("The national mass retailer's exposure here is the ASN fee, not OTIF. "
                            if asn_fires and otif_passes and all_months_pass else "")
         delivery_note = (
-            f"Scored Walmart's way (by case, arrival by MABD, POs dated {window_year}), Walmart on-time is "
+            f"Scored the national mass retailer's way (by case, arrival by MABD, POs dated {window_year}), its on-time is "
             f"{wm_on_time:.1%} against its {on_time_target:.0%} prepaid target and in-full is "
             f"{wm_in_full:.1%} against {in_full_target:.0%}{pass_clause}. {exposure_clause}"
-            f"Walmart also charges 3% of the cost of goods on late or short cases; "
+            f"That retailer also charges 3% of the cost of goods on late or short cases; "
             f"that fine is not included in this figure."
         )
 
         if asn_fires:
             verdict = (
                 f"In {window_year}, {late_asn:,} of {total_shipments:,} shipments ({asn_late_rate:.1%}) had late ASNs. "
-                f"Walmart charges ${fee:,} per late-ASN PO under SQEP: "
-                f"{walmart_late_asn:,} Walmart late ASNs = ${exposure:,.0f} in {window_year}. "
+                f"The national mass retailer charges ${fee:,} per late-ASN PO: "
+                f"{walmart_late_asn:,} of its late ASNs = ${exposure:,.0f} in {window_year}. "
                 f"Other retailers' ASN fees are unknown and not counted. "
                 f"Worst account: {worst_retailer['retailer_name']} at {float(worst_retailer['asn_late_rate']):.1%} late ASN rate. "
                 f"{delivery_note}"
             )
-            verdict_detail = f"{asn_late_rate:.1%} ASN late — ${exposure:,.0f} Walmart ASN fees ({window_year})"
+            verdict_detail = f"{asn_late_rate:.1%} ASN late — ${exposure:,.0f} national mass retailer ASN fees ({window_year})"
         else:
             verdict = (
                 f"ASN compliance is clean in {window_year}: {asn_late_rate:.1%} ASN late rate "
@@ -230,12 +230,12 @@ class OtifExposureQuestion(BaseQuestion):
                     context=f"{asn_late_rate:.1%} of all shipments",
                 ),
                 KeyNumber(
-                    label=f"Walmart ASN fees, {window_year}",
+                    label=f"National mass retailer ASN fees, {window_year}",
                     value=f"${exposure:,.0f}",
-                    context=f"{walmart_late_asn:,} Walmart late ASNs × ${fee:,}; other retailers excluded",
+                    context=f"{walmart_late_asn:,} late ASNs × ${fee:,}; other retailers excluded",
                 ),
                 KeyNumber(
-                    label=f"Walmart OTIF, {window_year} (by case)",
+                    label=f"National mass retailer OTIF, {window_year} (by case)",
                     value=f"{wm_on_time:.1%} on time · {wm_in_full:.1%} in full",
                     context=(f"Targets {on_time_target:.0%} (prepaid, by MABD) and {in_full_target:.0%}; "
                              + (f"met in all {n_months} months" if otif_passes and all_months_pass
@@ -244,17 +244,18 @@ class OtifExposureQuestion(BaseQuestion):
             ],
             chart=chart_data,
             rule_explanation=(
-                f"Walmart ASN fees = Walmart late-ASN shipments in {window_year} × ${fee:,} "
-                f"(Walmart SQEP Phase 1 flat fee per late-ASN PO; each late-ASN shipment counted as one PO). "
+                f"ASN fees = the national mass retailer's late-ASN shipments in {window_year} × the flat fee per late-ASN PO "
+                f"(each late-ASN shipment counted as one PO). "
+                f"The ${fee:,} fee is that retailer's published flat fee per late-ASN PO. "
                 f"Other retailers' ASN fees are unknown and excluded. "
                 f"Fires when the all-retailer asn_sent_late rate > {cfg['asn_late_rate_threshold']:.0%}. "
-                f"Walmart OTIF targets since early 2024 (SPS Commerce; Walmart's own spec is in Retail Link): "
+                f"Its OTIF targets since early 2024 (SPS Commerce; the retailer's own spec is in its supplier portal): "
                 f"{on_time_target:.0%} on-time for prepaid freight, measured at arrival by MABD (requested ship date + "
                 f"{cfg['walmart_mabd_days']} days); 98% ready for collect pickup; {in_full_target:.0%} in-full, "
                 f"scored as whole cases delivered against cases ordered. "
-                f"Walmart charges 3% of the cost of goods on late or short cases. "
+                f"Its published fine is 3% of the cost of goods on late or short cases. "
                 f"The data has no prepaid/collect flag, so prepaid is assumed. "
-                f"Walmart OTIF uses POs dated {window_year}{undated_note}. "
+                f"The OTIF score uses POs dated {window_year}{undated_note}. "
                 f"Window: calendar {window_year}, the same year used in q15. "
                 f"Late ASN = ASN arrived after ship date (asn_sent_late = true in fct_retailer_shipments)."
             ),

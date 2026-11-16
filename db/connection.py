@@ -4,6 +4,8 @@ from typing import Any
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
+from engine.labels import label_rows
+
 load_dotenv()
 
 _engine = None
@@ -32,4 +34,5 @@ def query(sql: str, params: dict | None = None) -> list[dict[str, Any]]:
     with _get_engine().connect() as conn:
         result = conn.execute(text(sql), params or {})
         cols = result.keys()
-        return [dict(zip(cols, row)) for row in result.fetchall()]
+        # Partner names leave the database as role labels (engine/labels.py).
+        return label_rows([dict(zip(cols, row)) for row in result.fetchall()])
