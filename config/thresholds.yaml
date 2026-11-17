@@ -25,7 +25,7 @@ q04:
   # Unplanned = compliance + shortage + damage + post-audit types
 
 q07:
-  # Is my product data going to break at Walmart?
+  # Is my product data going to break at a national mass retailer?
   critical_error_threshold: 0.05          # > 5% of SKUs have critical field errors = do not submit
   warning_error_threshold: 0.02           # 2-5% = fix before next sync window
   # Critical fields: GTIN-14 (14-digit), UPC (12-13 digit), case weight > 0, all 3 dimensions > 0

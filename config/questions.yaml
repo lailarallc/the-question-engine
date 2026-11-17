@@ -53,8 +53,8 @@ questions:
     is_stub: true               # depends on Recall Blast Radius piece
 
   - id: q07
-    question: "Is my product data going to break at Walmart?"
-    short_label: "Product data Walmart-ready?"
+    question: "Is my product data going to break at a national mass retailer?"
+    short_label: "Product data retailer-ready?"
     source_piece: "Product Data Health Audit"
     go_deeper_link: "https://audit.lailarallc.com"
     scenario: baseline
