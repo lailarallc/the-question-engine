@@ -45,10 +45,10 @@ with engine.connect() as conn:
     for r in rows[:3]:
         print(f"  {r[1]}: {r[2]}%")
 
-    conn.execute(text("TRUNCATE public_marts.q12_by_sku"))
+    conn.execute(text("TRUNCATE the_question_engine.q12_by_sku"))
     for row in rows:
         conn.execute(text(
-            "INSERT INTO public_marts.q12_by_sku VALUES (:sku, :product_name, :mape, :forecast)"
+            "INSERT INTO the_question_engine.q12_by_sku VALUES (:sku, :product_name, :mape, :forecast)"
         ), {"sku": row[0], "product_name": row[1], "mape": row[2], "forecast": row[3]})
 
     print("Done. q12_by_sku repopulated with store-week level MAPE.")

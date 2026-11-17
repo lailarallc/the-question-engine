@@ -3,6 +3,11 @@ Run q12 heavy SQL locally and store results in lightweight DB tables.
 Run once via: python -m scripts.materialize_q12
 Production q12 then reads from these tables (instant).
 To write through a fly proxy tunnel to production, set ALLOW_PROD_DB=1.
+
+The tables live in this repo's own schema, the_question_engine (U19a: no
+consumer writes a platform schema). In production the platform's owner-run
+scripts/move_writer_tables.ps1 creates it; elsewhere this run creates it if
+it is missing.
 """
 import os
 from sqlalchemy import create_engine, text
@@ -76,8 +81,14 @@ with engine.connect() as conn:
     print(f"By-SKU: {len(by_sku)} rows")
 
     print("Creating precomputed tables...")
+    has_schema = conn.execute(text(
+        "SELECT 1 FROM pg_namespace WHERE nspname = 'the_question_engine'")).fetchone()
+    if has_schema is None:
+        # Only a missing schema is made here: Postgres tests the database
+        # privilege before IF NOT EXISTS.
+        conn.execute(text("CREATE SCHEMA the_question_engine"))
     conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS public_marts.q12_summary (
+        CREATE TABLE IF NOT EXISTS the_question_engine.q12_summary (
             mape_pct NUMERIC,
             median_ape_pct NUMERIC,
             sku_count INT,
@@ -85,7 +96,7 @@ with engine.connect() as conn:
         )
     """))
     conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS public_marts.q12_by_sku (
+        CREATE TABLE IF NOT EXISTS the_question_engine.q12_by_sku (
             sku TEXT,
             product_name TEXT,
             mape_pct NUMERIC,
@@ -93,16 +104,16 @@ with engine.connect() as conn:
         )
     """))
 
-    conn.execute(text("TRUNCATE public_marts.q12_summary"))
-    conn.execute(text("TRUNCATE public_marts.q12_by_sku"))
+    conn.execute(text("TRUNCATE the_question_engine.q12_summary"))
+    conn.execute(text("TRUNCATE the_question_engine.q12_by_sku"))
 
     conn.execute(text("""
-        INSERT INTO public_marts.q12_summary VALUES (:mape, :median, :skus, :rows)
+        INSERT INTO the_question_engine.q12_summary VALUES (:mape, :median, :skus, :rows)
     """), {"mape": summary[0], "median": summary[1], "skus": summary[2], "rows": summary[3]})
 
     for row in by_sku:
         conn.execute(text("""
-            INSERT INTO public_marts.q12_by_sku VALUES (:sku, :product_name, :mape, :forecast)
+            INSERT INTO the_question_engine.q12_by_sku VALUES (:sku, :product_name, :mape, :forecast)
         """), {"sku": row[0], "product_name": row[1], "mape": row[2], "forecast": row[3]})
 
     print("Done. Tables q12_summary and q12_by_sku populated.")
