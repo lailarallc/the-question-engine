@@ -1,0 +1,12 @@
+# Typed figures this repo prints with no canon key (owner, 2026-11-15; plan U19, U22).
+# One row per figure per location. The platform's fleet check holds the row count to a ceiling that only
+# falls: give a figure a key (or stop printing it) and delete its row. listed=yes: the read map names it, and
+# U19 owes its key; listed=no: U22 works it down. Generated from the 2026-11-15 manifest pass.
+file_line	printed	exact_value	meaning	source	kind	listed
+README.md:37	~$25M	25332687.28	company revenue scale, combined invoiced CY2025	prose only; nearest canon revenue.combined_invoiced.cy2025	prose-only	no
+README.md:37	5 product lines	5	product line count	prose only	prose-only	no
+README.md:37	6 contracted retailers	6	contracted retailer count	prose only	prose-only	no
+engine/questions/q02_retailer_launch_cost.py:29	499_200	499200	modeled year-1 gross revenue of a new retailer launch (Cost of Saying Yes), printed $499,200 in verdict	constant q02:29; from cost-of-saying-yes calculator	fixed-input	yes
+engine/questions/q02_retailer_launch_cost.py:30	-36_320	-36320	modeled year-1 net cash of that launch, printed -$36,320	constant q02:30; from cost-of-saying-yes calculator	fixed-input	yes
+scripts/check_canonical.py:12	50 SKUs, $1.35M backlog, 3,357 chargebacks, ~15% recovery		docstring canon recap (3,357 chargebacks is retailer 2,873 + distributor 484)	comment only	prose-only	yes
+scripts/check_canonical.py:57	$1,346,815	1346815	cross-channel deduction backlog (retailer + distributor), comment	comment only; CINDERHAVEN_CANONICAL headline	prose-only	no
