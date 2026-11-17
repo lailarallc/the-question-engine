@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-11-17 — q07 relabelled: no real retailer name in any question title, label or verdict
+
+**Decision:** q07's title is now "Is my product data going to break at a national mass retailer?", its short label is "Product data retailer-ready?", and its verdict says "…will fail a national mass retailer's GDSN submission." This supersedes the line "q07 keeps its question title" in the 2026-11-16 entry.
+
+**Why:** q07 passed the owner rule (it shows no Cinderhaven dollar figure), but after the PDF rebuild it was the only place in the engine's output that still named a real retailer, beside a claim that a brand's products "will fail" that retailer's submission. Relabelling cost little and closes the last gap.
+
+**Not covered:** source-code comments and SQL that filter on the real name in the database (e.g. q13's OTIF query) still use it. The name never reaches output without passing through `engine/labels.py`.
+
+---
+
 ## 2026-11-16 — Verdicts show partner role labels, never real partner names
 
 **Decision:** Every partner name leaves the database layer as its role label (`engine/labels.py`, applied in `db/connection.py:query`). The label map is vendored from lailara-website (`reference/retailer_display_labels.json`). The q13 verdict, key numbers and rule note were reworded to say "the national mass retailer". q07 keeps its question title: it carries no Cinderhaven dollar figure.

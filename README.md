@@ -18,7 +18,7 @@ Deliberately not an LLM. Every verdict is produced by explicit, readable rules w
 | Q04 | Where is my trade spend going? | Trade Spend Diagnostic |
 | Q05 | Why don't my numbers match my distributor's? | EDI Reconciliation (stub) |
 | Q06 | What would a recall cost me? | Recall Blast Radius (stub) |
-| Q07 | Is my product data going to break at Walmart? | Product Data Health Audit |
+| Q07 | Is my product data going to break at a national mass retailer? | Product Data Health Audit |
 | Q08 | What does one wrong weight cost? | Dimension & Weight Integrity |
 | Q09 | Which channel actually makes money? | Channel Profitability |
 | Q10 | Am I leaving deduction money on the table? | Deduction Recovery |

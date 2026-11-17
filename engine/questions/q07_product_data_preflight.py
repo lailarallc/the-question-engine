@@ -1,5 +1,5 @@
 """
-Q07: Is my product data going to break at Walmart?
+Q07: Is my product data going to break at a national mass retailer?
 
 Checks four critical field categories against dim_products:
   - GTIN-14: must be non-null and exactly 14 digits
@@ -78,8 +78,8 @@ class ProductDataPreflightQuestion(BaseQuestion):
     def meta(self) -> QuestionMeta:
         return QuestionMeta(
             id="q07",
-            question="Is my product data going to break at Walmart?",
-            short_label="Product data Walmart-ready?",
+            question="Is my product data going to break at a national mass retailer?",
+            short_label="Product data retailer-ready?",
             source_piece="Product Data Health Audit",
             go_deeper_link="https://lailarallc.com/product-data-health-audit",
             scenario="baseline",
@@ -110,7 +110,7 @@ class ProductDataPreflightQuestion(BaseQuestion):
         if critical_rate > cfg["critical_error_threshold"]:
             verdict = (
                 f"{skus_with_any_error} of {total} SKUs ({critical_rate:.0%}) have data errors "
-                f"that will fail a Walmart GDSN submission. "
+                f"that will fail a national mass retailer's GDSN submission. "
                 f"Worst field: {worst_field[0]} with {worst_field[1]} errors. "
                 f"Do not submit until these are resolved — "
                 f"a failed GDSN sync delays item setup by weeks."
